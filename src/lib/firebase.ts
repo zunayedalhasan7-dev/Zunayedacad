@@ -10,7 +10,12 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Analytics safely
-export const analyticsPromise = isSupported().then(yes => yes ? getAnalytics(app) : null);
+export const analyticsPromise = isSupported()
+  .then(yes => yes ? getAnalytics(app) : null)
+  .catch(err => {
+    console.warn("Firebase Analytics not supported in this environment:", err);
+    return null;
+  });
 
 async function testConnection() {
   try {

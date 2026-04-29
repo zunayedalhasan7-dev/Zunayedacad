@@ -87,7 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return data.user;
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Google login failed');
+        // Include detailed hints for technical/permission errors to aid debugging
+        const message = errorData.hint 
+          ? `${errorData.error} Hint: ${errorData.hint}` 
+          : (errorData.error || 'Google login failed');
+        throw new Error(message);
       }
     } catch (err: any) {
       console.error('Google login error:', err);

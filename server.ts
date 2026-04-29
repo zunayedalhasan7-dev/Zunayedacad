@@ -34,35 +34,43 @@ let firebaseApp: any;
 let db: any;
 try {
   const pId = firebaseConfig.projectId?.trim();
+  const ambientProjectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
   
   if (getApps().length === 0) {
-    console.log(`Initializing Firebase Admin for project: "${pId}"`);
+    console.log(`Initializing Firebase Admin. Config Project: ${pId || 'none'}, Ambient Project: ${ambientProjectId || 'none'}`);
+    
+    // If the config project is set, but we get PERMISSION_DENIED later, 
+    // it usually means we should have used the ambient project ID.
     firebaseApp = initializeApp({
       credential: applicationDefault(),
-      projectId: pId,
+      projectId: pId || ambientProjectId, // Prioritize config if available
     });
   } else {
     firebaseApp = getApp();
   }
   
-  console.log(`Firebase Admin initialized. Project ID: ${firebaseApp?.options?.projectId || 'unknown'}`);
+  const activeProjectId = firebaseApp?.options?.projectId;
+  console.log(`Firebase Admin active. Project ID: ${activeProjectId || 'unknown'}`);
 
   // Initialize Firestore
   const dbId = firebaseConfig.firestoreDatabaseId;
   try {
     if (dbId) {
-      console.log(`Using named Firestore database: "${dbId}"`);
+      console.log(`Using named Firestore database: "${dbId}" for project: ${activeProjectId}`);
       db = getFirestore(firebaseApp, dbId);
     } else {
-      console.log("Using default Firestore database.");
+      console.log(`Using default Firestore database for project: ${activeProjectId}`);
       db = getFirestore(firebaseApp);
     }
-  } catch (firestoreError) {
-    console.error("Firestore initialization failed. Database will not be available:", firestoreError);
+  } catch (firestoreError: any) {
+    console.error("Firestore initialization failed:", firestoreError.message);
     db = null;
   }
 } catch (error: any) {
-  console.error("CRITICAL: Firebase initialization failed. Admin features will be unavailable:", error.message);
+  console.error("CRITICAL: Firebase initialization failed:", error.message);
+  if (error.message.includes("PERMISSION_DENIED")) {
+    console.error("HINT: This usually means the environment's service account does not have access to the specified project. Please run 'Set up Firebase' in AI Studio.");
+  }
   firebaseApp = null;
   db = null;
 }
@@ -370,7 +378,21 @@ async function startServer() {
       }
 
       // Check if user exists in Firestore
-      let userSnapshot = await db.collection("users").where("email", "==", email).limit(1).get();
+      let userSnapshot;
+      try {
+        if (!db) throw new Error("Firestore instance is not available.");
+        userSnapshot = await db.collection("users").where("email", "==", email).limit(1).get();
+      } catch (dbErr: any) {
+        console.error("Firestore query error in Google login:", dbErr.message);
+        if (dbErr.message.includes("PERMISSION_DENIED") || dbErr.message.includes("is disabled") || dbErr.message.includes("has not been used")) {
+          return res.status(503).json({ 
+            error: "Database permission error.",
+            detail: dbErr.message,
+            hint: "The server-side service account lacks permissions for this Firestore project. This often happens after a project migration or misconfiguration. Please use the 'Set up Firebase' tool in AI Studio to re-provision the database for project: " + (firebaseApp?.options?.projectId || "unknown")
+          });
+        }
+        throw dbErr;
+      }
       let userData: any;
       let userDocId: string;
 
