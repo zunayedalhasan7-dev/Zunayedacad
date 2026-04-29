@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { auth as fbAuth, googleProvider } from '../lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { auth as fbAuth, googleProvider, db as clientDb } from '../lib/firebase';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   user: any;
@@ -32,67 +33,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Initial check for session
-    const checkAuth = async () => {
+    const unsubscribe = fbAuth.onAuthStateChanged(async (fbUser) => {
       try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data.user);
-          setUser({ uid: data.user.uid, email: data.user.email } as any);
+        if (fbUser) {
+          const userDoc = await getDoc(doc(clientDb, 'users', fbUser.uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as UserProfile;
+            setProfile(userData);
+            setUser({ ...fbUser, ...userData });
+          } else {
+            // New user from maybe a background auth state
+            const newProfile: any = {
+              uid: fbUser.uid,
+              email: fbUser.email,
+              displayName: fbUser.displayName || '',
+              photoURL: fbUser.photoURL || '',
+              role: 'student',
+              createdAt: serverTimestamp()
+            };
+            await setDoc(doc(clientDb, 'users', fbUser.uid), newProfile);
+            setProfile(newProfile);
+            setUser({ ...fbUser, ...newProfile });
+          }
+        } else {
+          setUser(null);
+          setProfile(null);
         }
       } catch (err) {
-        console.error('Auth check failed:', err);
+        console.error("Auth state error:", err);
       } finally {
         setLoading(false);
       }
-    };
+    });
 
-    checkAuth();
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      setProfile(data.user);
-      setUser({ uid: data.user.uid, email: data.user.email } as any);
-      return data.user;
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Login failed');
+    try {
+      const result = await signInWithEmailAndPassword(fbAuth, email, password);
+      const userDoc = await getDoc(doc(clientDb, 'users', result.user.uid));
+      
+      let data: any = { role: 'student' };
+      if (userDoc.exists()) {
+        data = userDoc.data();
+        setProfile(data as UserProfile);
+      }
+      setUser({ ...result.user, ...data });
+      return { ...result.user, ...data };
+    } catch (err: any) {
+      if (err.code === 'auth/operation-not-allowed') {
+         throw new Error('Email/Password login is not enabled in your Firebase account. Please enable it in the Firebase Console under Authentication > Sign-in method.');
+      }
+      throw err;
     }
   };
 
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(fbAuth, googleProvider);
-      const idToken = await result.user.getIdToken();
+      const fbUser = result.user;
       
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.user);
-        setUser({ uid: data.user.uid, email: data.user.email } as any);
-        return data.user;
+      const userDocRef = doc(clientDb, 'users', fbUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      let profileData: any;
+      if (!userDoc.exists()) {
+        profileData = {
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName || '',
+          photoURL: fbUser.photoURL || '',
+          role: 'student',
+          createdAt: serverTimestamp()
+        };
+        await setDoc(userDocRef, profileData);
       } else {
-        const errorData = await response.json();
-        // Include detailed hints for technical/permission errors to aid debugging
-        const message = errorData.hint 
-          ? `${errorData.error} Hint: ${errorData.hint}` 
-          : (errorData.error || 'Google login failed');
-        throw new Error(message);
+        profileData = userDoc.data();
+        // Update photo and name if missing
+        await setDoc(userDocRef, {
+          displayName: fbUser.displayName || profileData.displayName,
+          photoURL: fbUser.photoURL || profileData.photoURL,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        profileData.displayName = fbUser.displayName || profileData.displayName;
+        profileData.photoURL = fbUser.photoURL || profileData.photoURL;
       }
+
+      setProfile(profileData as UserProfile);
+      setUser({ ...fbUser, ...profileData });
+      return { ...fbUser, ...profileData };
     } catch (err: any) {
       console.error('Google login error:', err);
       throw err;
@@ -100,23 +131,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, password: string, displayName: string) => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Registration failed');
+    try {
+      const result = await createUserWithEmailAndPassword(fbAuth, email, password);
+      const fbUser = result.user;
+      
+      await updateProfile(fbUser, { displayName });
+      
+      const profileData: any = {
+        uid: fbUser.uid,
+        email: fbUser.email,
+        displayName,
+        role: 'student',
+        createdAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(clientDb, 'users', fbUser.uid), profileData);
+      
+      setProfile(profileData as UserProfile);
+      setUser({ ...fbUser, ...profileData });
+      return { ...fbUser, ...profileData };
+    } catch (err: any) {
+      if (err.code === 'auth/operation-not-allowed') {
+         throw new Error('Email/Password registration is not enabled in your Firebase account. Please enable it in the Firebase Console under Authentication > Sign-in method.');
+      }
+      throw err;
     }
-    return response.json();
   };
 
   const signOut = async () => {
     try {
       await fbAuth.signOut();
-      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -125,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAdmin = profile?.role === UserRole.ADMIN;
+  const isAdmin = profile?.role === UserRole.ADMIN || profile?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ 
@@ -152,3 +196,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

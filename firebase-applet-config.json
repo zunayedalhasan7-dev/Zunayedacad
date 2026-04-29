@@ -1,9 +1,10 @@
 {
-  "projectId": "zunayedacad",
-  "appId": "1:293358545397:web:0a1a5cf3c0903dc7ea98bc",
-  "apiKey": "AIzaSyAXPXVDhZFwsuhLm0DSYcHf222kiZC6TcQ",
-  "authDomain": "zunayedacad.firebaseapp.com",
-  "storageBucket": "zunayedacad.firebasestorage.app",
-  "messagingSenderId": "293358545397",
-  "measurementId": "G-C1L4T21KZ6"
+  "projectId": "zunayedacademy1",
+  "appId": "1:91820462168:web:d87dfb76ae9448e06d7a2d",
+  "apiKey": "AIzaSyCqoJGZbQ18IMu9eziDZoioZShn2x-e2KQ",
+  "authDomain": "zunayedacademy1.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-89f6e6e6-f660-4b3f-a6aa-a1bbb5d4bb0c",
+  "storageBucket": "zunayedacademy1.firebasestorage.app",
+  "messagingSenderId": "91820462168",
+  "measurementId": ""
 }

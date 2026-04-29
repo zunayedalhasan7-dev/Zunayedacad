@@ -16,15 +16,16 @@ export default function Courses() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const q = query(
-          collection(db, 'courses'),
-          where('status', '==', 'published')
-        );
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+        const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'published'));
+        const querySnapshot = await getDocs(coursesQuery);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
         setCourses(data);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.LIST, 'courses');
+      } catch (err: any) {
+        console.error('Courses fetch error:', err);
+        // Display error hint for permission issues
+        if (err.message.includes('PERMISSION_DENIED') || err.message.includes('permission error')) {
+          alert("Database configuration error detected. Please ensure Firebase is properly set up in AI Studio.");
+        }
       } finally {
         setLoading(false);
       }

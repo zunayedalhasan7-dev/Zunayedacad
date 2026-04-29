@@ -14,14 +14,10 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      // Fetch users from backend API for security (RBAC enforcement & scrubbing)
-      const usersResponse = await fetch('/api/admin/users');
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData);
-      } else {
-        console.error('Failed to fetch users from API');
-      }
+      // Fetch users using Firebase Client SDK Instead of backend
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const usersData = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+      setUsers(usersData);
 
       // Courses can still be fetched via Firestore if public/semi-public
       const coursesSnapshot = await getDocs(collection(db, 'courses'));
