@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user basic information and roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "phone": { "type": "string" },
+        "bio": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Represents an online course.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "price": { "type": "number" },
+        "discountPrice": { "type": "number" },
+        "category": { "type": "string", "enum": ["SSC", "HSC", "Skills"] },
+        "subject": { "type": "string" },
+        "className": { "type": "string" },
+        "group": { "type": "string", "enum": ["Science", "Arts", "Commerce", "General"] },
+        "instructorId": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "pending", "published"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "instructorId", "status"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "A single lesson/video within a course.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "isFree": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "title", "videoUrl", "order"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Links a user to a course they have purchased or joined.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "enrolledAt": { "type": "string", "format": "date-time" },
+        "progress": { "type": "number" },
+        "completedLessons": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "courseId", "enrolledAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Records course purchase transactions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string", "enum": ["bkash", "nagad"] },
+        "status": { "type": "string", "enum": ["completed", "pending", "failed"] },
+        "transactionId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "amount", "method", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "Course catalog"
+    },
+    "/courses/{courseId}/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Lessons within a specific course"
+    },
+    "/enrollments/{enrollmentId}": {
+      "schema": "Enrollment",
+      "description": "User course enrollments"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Transaction logs"
+    }
+  }
+}
