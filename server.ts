@@ -31,40 +31,40 @@ import rateLimit from "express-rate-limit";
 
 // Initialize Firebase Admin
 let firebaseApp: any;
+let db: any;
 try {
   const pId = firebaseConfig.projectId?.trim();
-  const options = {
-    credential: applicationDefault(),
-    projectId: pId,
-  };
-
+  
   if (getApps().length === 0) {
-    console.log(`Initializing default Firebase Admin. Config Project: "${pId}"`);
-    firebaseApp = initializeApp(options);
+    console.log(`Initializing Firebase Admin for project: "${pId}"`);
+    firebaseApp = initializeApp({
+      credential: applicationDefault(),
+      projectId: pId,
+    });
   } else {
-    console.log("Default Firebase app already exists. Initializing named app 'user-app'.");
-    firebaseApp = initializeApp(options, "user-app");
+    firebaseApp = getApp();
   }
   
-  console.log(`Firebase App ready. Active Project ID: ${firebaseApp.options.projectId}`);
-} catch (initError) {
-  console.error("Firebase Admin initialization error:", initError);
-}
+  console.log(`Firebase Admin initialized. Project ID: ${firebaseApp?.options?.projectId || 'unknown'}`);
 
-// Initialize Firestore
-let db: any; 
-try {
+  // Initialize Firestore
   const dbId = firebaseConfig.firestoreDatabaseId;
-  if (dbId) {
-    console.log(`Attempting to use named Firestore database: "${dbId}" for project: ${firebaseApp.options.projectId}`);
-    db = getFirestore(firebaseApp, dbId);
-  } else {
-    console.log(`Using default Firestore database for project: ${firebaseApp.options.projectId}`);
-    db = getFirestore(firebaseApp);
+  try {
+    if (dbId) {
+      console.log(`Using named Firestore database: "${dbId}"`);
+      db = getFirestore(firebaseApp, dbId);
+    } else {
+      console.log("Using default Firestore database.");
+      db = getFirestore(firebaseApp);
+    }
+  } catch (firestoreError) {
+    console.error("Firestore initialization failed. Database will not be available:", firestoreError);
+    db = null;
   }
-} catch (dbError: any) {
-  console.error("Firestore initialization error, falling back to default:", dbError);
-  db = getFirestore(firebaseApp);
+} catch (error: any) {
+  console.error("CRITICAL: Firebase initialization failed. Admin features will be unavailable:", error.message);
+  firebaseApp = null;
+  db = null;
 }
 const JWT_SECRET = process.env.JWT_SECRET || "zunayed-academy-super-secret-key-2024";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "xpeee01@gmail.com";
@@ -105,6 +105,17 @@ const authorizeRole = (role: string) => {
   };
 };
 
+// ================== DB CHECK MIDDLEWARE ==================
+const dbCheck = (req: Request, res: Response, next: NextFunction) => {
+  if (!db) {
+    return res.status(503).json({ 
+      error: "Database service unavailable.", 
+      details: "Firebase Admin failed to initialize. If using an external project, a service account key might be required, or the project permissions are insufficient."
+    });
+  }
+  next();
+};
+
 async function seedAdmin() {
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminPassword) {
@@ -112,10 +123,15 @@ async function seedAdmin() {
     return;
   }
 
+  if (!db) {
+    console.warn("Firestore database not initialized. Skipping Admin seeding.");
+    return;
+  }
+
   try {
     const adminRef = db.collection("users").doc("admin_one");
     const doc = await adminRef.get();
-
+// ... (rest of the code unchanged)
     if (!doc.exists) {
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       await adminRef.set({
@@ -151,9 +167,18 @@ async function startServer() {
 
   // Seed Admin on startup
   console.log("Starting server and seeding admin...");
-  await seedAdmin();
+  seedAdmin().catch(err => console.error("Non-blocking seedAdmin failed:", err));
 
   app.get("/api/health/firestore", async (req: Request, res: Response) => {
+    if (!firebaseApp || !db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Firebase Admin or Firestore not initialized.",
+        projectId: firebaseConfig.projectId,
+        hint: "This usually happens when the server environment lacks permissions to access the external Firebase project. Consider using the 'Set up Firebase' tool in AI Studio."
+      });
+    }
+
     const results: any = {};
     const dbId = firebaseConfig.firestoreDatabaseId;
     
@@ -185,13 +210,13 @@ async function startServer() {
 
     res.json({ 
       status: results.named?.status === "ok" || results.default?.status === "ok" ? "ok" : "error",
-      activeProjectId: firebaseApp.options.projectId,
+      activeProjectId: firebaseApp?.options?.projectId,
       results 
     });
   });
 
   // ================== AUTH ROUTES ==================
-  app.post("/api/auth/login", loginLimiter, async (req: Request, res: Response) => {
+  app.post("/api/auth/login", loginLimiter, dbCheck, async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -264,7 +289,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/auth/register", dbCheck, async (req: Request, res: Response) => {
     const { email, password, displayName } = req.body;
 
     if (!email || !password) {
@@ -300,7 +325,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/auth/me", auth, async (req: AuthRequest, res: Response) => {
+  app.get("/api/auth/me", auth, dbCheck, async (req: AuthRequest, res: Response) => {
     try {
       const userDoc = await db.collection("users").doc(req.user!.uid).get();
       
@@ -328,7 +353,7 @@ async function startServer() {
     res.json({ message: "Logged out successfully." });
   });
 
-  app.post("/api/auth/google", async (req: Request, res: Response) => {
+  app.post("/api/auth/google", dbCheck, async (req: Request, res: Response) => {
     const { idToken } = req.body;
 
     if (!idToken) {
@@ -434,7 +459,7 @@ async function startServer() {
   });
 
   // ================== ADMIN PROTECTED ROUTES ==================
-  app.get("/api/admin/users", auth, authorizeRole("admin"), async (req: AuthRequest, res: Response) => {
+  app.get("/api/admin/users", auth, authorizeRole("admin"), dbCheck, async (req: AuthRequest, res: Response) => {
     try {
       const usersSnapshot = await db.collection("users").get();
       const users = usersSnapshot.docs.map(doc => {
