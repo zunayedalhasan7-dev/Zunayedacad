@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Course, CourseCategory } from '../types';
-import { Search, Filter, Star, Users, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { EmptyCoursesIllustration } from '../components/Illustrations';
+import CourseCard from '../components/CourseCard';
 
 export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -22,9 +22,8 @@ export default function Courses() {
         setCourses(data);
       } catch (err: any) {
         console.error('Courses fetch error:', err);
-        // Display error hint for permission issues
         if (err.message.includes('PERMISSION_DENIED') || err.message.includes('permission error')) {
-          alert("Database configuration error detected. Please ensure Firebase is properly set up in AI Studio.");
+          console.error("Database configuration error detected. Please ensure Firebase is properly set up in AI Studio.");
         }
       } finally {
         setLoading(false);
@@ -43,103 +42,97 @@ export default function Courses() {
   const categories = ['All', ...Object.values(CourseCategory)];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-slate-900">সকল কোর্সসমূহ</h1>
-          <p className="text-slate-500">আপনার পছন্দের বিষয় বেছে নিন এবং শেখা শুরু করুন</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="কোর্স খুঁজুন..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 w-full sm:w-64 shadow-sm"
-            />
-          </div>
-          <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedCategory === cat ? 'bg-primary-600 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {cat === 'All' ? 'সবগুলো' : cat}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 pt-24 pb-12 relative overflow-hidden">
+      {/* Background glow base */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[10%] w-[40%] h-[40%] bg-primary-50 opacity-[0.03] blur-[150px] rounded-full"></div>
+        <div className="absolute bottom-[10%] left-[-10%] w-[30%] h-[50%] bg-primary-50 opacity-[0.03] blur-[150px] rounded-full"></div>
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white rounded-2xl h-[400px] animate-pulse border border-slate-100" />
-          ))}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600">সকল কোর্সসমূহ</h1>
+            <p className="text-slate-500 text-lg">আপনার পছন্দের বিষয় বেছে নিন এবং শেখা শুরু করুন</p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-primary-600 rounded-xl blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
+              <div className="relative flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="pl-4">
+                  <Search className="h-5 w-5 text-slate-500 group-focus-within:text-primary-600 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="কোর্স খুঁজুন..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-3 pr-4 py-3 bg-transparent text-slate-900 placeholder-slate-500 focus:outline-none sm:w-64"
+                />
+              </div>
+            </div>
+            
+            <div className="flex bg-white  p-1.5 rounded-xl border border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedCategory === cat 
+                      ? 'bg-primary-600 text-white shadow-sm' 
+                      : 'text-slate-500 hover:text-primary-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {cat === 'All' ? 'সবগুলো' : cat}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      ) : filteredCourses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course) => (
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="bg-white rounded-2xl h-[380px] animate-pulse border border-slate-200 shadow-lg" />
+            ))}
+          </div>
+        ) : filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {filteredCourses.map((course, idx) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: idx * 0.05, duration: 0.4 }}
+              >
+                <CourseCard
+                  id={course.id}
+                  title={course.title}
+                  instructor={course.instructorName || 'Unknown Instructor'}
+                  price={course.discountPrice || course.price}
+                  originalPrice={course.discountPrice ? course.price : undefined}
+                  rating={5.0} // Fallback rating since Course type doesn't have it yet
+                  thumb={course.thumbnail}
+                />
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-24 bg-white  rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-brand-purple/5 to-transparent z-0"></div>
             <motion.div
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              key={course.id}
-              className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative z-10 mb-6 w-48 h-48 mx-auto filter drop-shadow-sm"
             >
-              <div className="aspect-video relative overflow-hidden">
-                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-4 left-4">
-                  <span className="bg-primary-600 text-white text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded-md shadow-lg">
-                    {course.category}
-                  </span>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <h3 className="font-bold text-lg text-slate-900 line-clamp-2 h-14">
-                  {course.title}
-                </h3>
-                <div className="flex items-center text-sm text-slate-500 space-x-4">
-                  <span className="flex items-center"><Users className="mr-1 h-4 w-4" /> ১২৫০ জন</span>
-                  <span className="flex items-center"><Star className="mr-1 h-3 w-3 fill-amber-400 text-amber-400" /> ৪.৯</span>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-2xl font-bold text-primary-600">৳{course.discountPrice || course.price}</span>
-                    {course.discountPrice && (
-                      <span className="text-xs text-slate-400 line-through">৳{course.price}</span>
-                    )}
-                  </div>
-                  <Link
-                    to={`/courses/${course.id}`}
-                    className="flex items-center gap-2 bg-primary-50 text-primary-600 px-4 py-2 rounded-lg font-bold hover:bg-primary-600 hover:text-white transition-all text-sm"
-                  >
-                    শুরু করি <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
+              <EmptyCoursesIllustration />
             </motion.div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 w-48 h-48 mx-auto"
-          >
-            <EmptyCoursesIllustration />
-          </motion.div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">কোন কোর্স পাওয়া যায়নি</h2>
-          <p className="text-slate-500">অন্য কোন মডুাউল বা কীওয়ার্ড দিয়ে সার্চ করুন</p>
-        </div>
-      )}
+            <h2 className="relative z-10 text-2xl font-bold text-slate-900 mb-3">কোন কোর্স পাওয়া যায়নি</h2>
+            <p className="relative z-10 text-slate-500">অন্য কোন মডুাউল বা কীওয়ার্ড দিয়ে সার্চ করুন</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -11,13 +11,27 @@ const Courses = React.lazy(() => import('./pages/Courses'));
 const CourseDetail = React.lazy(() => import('./pages/CourseDetail'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const Products = React.lazy(() => import('./pages/Products'));
+const EBooks = React.lazy(() => import('./pages/EBooks'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const InstructorDashboard = React.lazy(() => import('./pages/InstructorDashboard'));
+const Settings = React.lazy(() => import('./pages/Settings'));
 const FreeCourses = React.lazy(() => import('./pages/FreeCourses'));
 const Contact = React.lazy(() => import('./pages/Contact'));
+const About = React.lazy(() => import('./pages/About'));
 const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
+const Checkout = React.lazy(() => import('./pages/Checkout'));
+const LessonPlayer = React.lazy(() => import('./pages/LessonPlayer'));
+const Blog = React.lazy(() => import('./pages/Blog'));
+const SuccessStories = React.lazy(() => import('./pages/SuccessStories'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const Terms = React.lazy(() => import('./pages/Terms'));
+const RefundPolicy = React.lazy(() => import('./pages/RefundPolicy'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
-function PrivateRoute({ children, role }: { children: React.ReactNode, role?: 'admin' | 'student' }) {
+function PrivateRoute({ children, role }: { children: React.ReactNode, role?: 'admin' | 'student' | 'instructor' }) {
   const { user, profile, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
@@ -43,17 +57,41 @@ export default function App() {
               <Route path="courses" element={<Courses />} />
               <Route path="courses/:id" element={<CourseDetail />} />
               <Route path="free-courses" element={<FreeCourses />} />
+              <Route path="checkout" element={<Checkout />} />
               <Route path="contact" element={<Contact />} />
+              <Route path="about" element={<About />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="products" element={<Products />} />
+              <Route path="ebooks" element={<EBooks />} />
+              <Route path="blog" element={<Blog />} />
+              <Route path="success-stories" element={<SuccessStories />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="terms" element={<Terms />} />
+              <Route path="refund-policy" element={<RefundPolicy />} />
               <Route path="unauthorized" element={<Unauthorized />} />
 
               {/* Nested Dashboard Layout inside Main Layout */}
               <Route element={<DashboardLayout />}>
                 {/* Student Dashboard */}
                 <Route path="dashboard" element={
-                  <PrivateRoute role="student">
+                  <PrivateRoute>
                     <Dashboard />
+                  </PrivateRoute>
+                } />
+                
+                {/* Instructor Dashboard */}
+                <Route path="instructor" element={
+                  <PrivateRoute role="instructor">
+                    <InstructorDashboard />
+                  </PrivateRoute>
+                } />
+                
+                {/* Settings / Profile */}
+                <Route path="settings" element={
+                  <PrivateRoute>
+                    <Settings />
                   </PrivateRoute>
                 } />
                 
@@ -64,7 +102,18 @@ export default function App() {
                   </PrivateRoute>
                 } />
               </Route>
+              
+              <Route path="*" element={<NotFound />} />
             </Route>
+
+            {/* No Layout Routes */}
+            <Route path="/play/:id" element={
+              <PrivateRoute>
+                <React.Suspense fallback={<LoadingScreen />}>
+                  <LessonPlayer />
+                </React.Suspense>
+              </PrivateRoute>
+            } />
           </Routes>
         </React.Suspense>
       </BrowserRouter>

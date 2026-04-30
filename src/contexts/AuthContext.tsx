@@ -169,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const isAdmin = profile?.role === UserRole.ADMIN || profile?.role === 'admin';
+  const isAdmin = profile?.role === UserRole.ADMIN;
 
   return (
     <AuthContext.Provider value={{ 
