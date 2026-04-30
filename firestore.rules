@@ -29,5 +29,15 @@ service cloud.firestore {
     match /enrollments/{enrollmentId} {
       allow read, write: if true;
     }
+
+    // Products
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+
+    // E-Books
+    match /ebooks/{ebookId} {
+      allow read, write: if true;
+    }
   }
 }

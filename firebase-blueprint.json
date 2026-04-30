@@ -84,6 +84,37 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "courseId", "amount", "method", "status", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Physical items available in the shop.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "rating": { "type": "number" },
+        "desc": { "type": "string" }
+      },
+      "required": ["title", "price", "image"]
+    },
+    "EBook": {
+      "title": "E-Book",
+      "description": "Digital books and notes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "price": { "type": "number" },
+        "pages": { "type": "number" },
+        "image": { "type": "string" },
+        "rating": { "type": "number" },
+        "desc": { "type": "string" }
+      },
+      "required": ["title", "price", "author", "image"]
     }
   },
   "firestore": {
@@ -106,6 +137,14 @@
     "/payments/{paymentId}": {
       "schema": "Payment",
       "description": "Transaction logs"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Physical product catalog"
+    },
+    "/ebooks/{ebookId}": {
+      "schema": "EBook",
+      "description": "Digital library"
     }
   }
 }
