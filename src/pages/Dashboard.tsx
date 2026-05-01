@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Enrollment, Course } from '../types';
@@ -19,19 +19,26 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEnrollments = async () => {
-      if (!user) return;
+    if (!user) return;
+    
+    // Enrollment Listener
+    const enrollQuery = query(collection(db, 'enrollments'), where('userId', '==', user.uid));
+    
+    const unsubscribe = onSnapshot(enrollQuery, async (snapshot) => {
+      const enrollments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Enrollment));
       
       try {
-        const enrollQuery = query(collection(db, 'enrollments'), where('userId', '==', user.uid));
-        const enrollSnapshot = await getDocs(enrollQuery);
-        const enrollments = enrollSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Enrollment));
-        
+        // Fetch Course data for each enrollment
         const courseData: EnrolledCourse[] = [];
         for (const enroll of enrollments) {
-          const courseDoc = await getDocs(query(collection(db, 'courses'), where('id', '==', enroll.courseId)));
-          if (!courseDoc.empty) {
-            const course = courseDoc.docs[0].data() as Course;
+          // Using getDocs here is still okay for individual course fetching in this context, 
+          // but we can try to optimize. For simplicity and real-time reliability:
+          const coursesCollection = collection(db, 'courses');
+          const courseQuery = query(coursesCollection, where('id', '==', enroll.courseId));
+          const courseSnapshot = await getDocs(courseQuery);
+          
+          if (!courseSnapshot.empty) {
+            const course = courseSnapshot.docs[0].data() as Course;
             courseData.push({
               ...course,
               enrollmentId: enroll.id,
@@ -41,13 +48,13 @@ export default function Dashboard() {
         }
         setEnrolledCourses(courseData);
       } catch (err) {
-        handleFirestoreError(err, OperationType.LIST, 'enrollments');
+        console.error('Dashboard courses fetch error:', err);
       } finally {
         setLoading(false);
       }
-    };
+    });
 
-    fetchEnrollments();
+    return () => unsubscribe();
   }, [user]);
 
   return (

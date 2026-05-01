@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingBag, Search, Filter, Star, ArrowRight, Package, Loader2 } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function Products() {
@@ -10,27 +10,25 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'products'));
-        const productsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (productsData.length > 0) {
-          setProducts(productsData);
-        } else {
-          // Fallback to static data if Firestore is empty
-          setProducts([
-            { id: 'p1', title: 'প্রিমিয়াম স্টাডি কিট', price: 1500, rating: 4.8, image: 'https://images.unsplash.com/photo-1544816153-0975b779a6cd?w=500', category: 'Essential', desc: 'SSC ও HSC শিক্ষার্থীদের জন্য একটি সম্পূর্ণ স্টাডি প্যাক।' },
-            { id: 'p2', title: 'স্মার্ট ক্যালকুলেটর (Fx-991ES Plus)', price: 1200, rating: 4.9, image: 'https://images.unsplash.com/photo-1574607383476-f517f220d1c0?w=500', category: 'Tools', desc: 'অ্যাডভান্সড ম্যাথমেটিক্স ক্যালকুলেশন করার জন্য পারফেক্ট।' },
-            { id: 'p3', title: 'একাডেমিক নোটবুক সেট', price: 450, rating: 4.7, image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=500', category: 'Stationery', desc: '৫টি প্রিমিয়াম কোয়ালিটির নোটবুক প্যাক।' }
-          ]);
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+      const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (productsData.length > 0) {
+        setProducts(productsData);
+      } else {
+        // Fallback or empty state
+        setProducts([
+          { id: 'p1', title: 'প্রিমিয়াম স্টাডি কিট', price: 1500, rating: 4.8, image: 'https://images.unsplash.com/photo-1544816153-0975b779a6cd?w=500', category: 'Essential', desc: 'SSC ও HSC শিক্ষার্থীদের জন্য একটি সম্পূর্ণ স্টাডি প্যাক।' },
+          { id: 'p2', title: 'স্মার্ট ক্যালকুলেটর (Fx-991ES Plus)', price: 1200, rating: 4.9, image: 'https://images.unsplash.com/photo-1574607383476-f517f220d1c0?w=500', category: 'Tools', desc: 'অ্যাডভান্সড ম্যাথমেটিক্স ক্যালকুলেশন করার জন্য পারফেক্ট।' },
+          { id: 'p3', title: 'একাডেমিক নোটবুক সেট', price: 450, rating: 4.7, image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=500', category: 'Stationery', desc: '৫টি প্রিমিয়াম কোয়ালিটির নোটবুক প্যাক।' }
+        ]);
       }
-    };
-    fetchProducts();
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching products:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredProducts = products.filter(product => 

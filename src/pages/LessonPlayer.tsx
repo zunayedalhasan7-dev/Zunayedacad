@@ -1,57 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PlayCircle, CheckCircle2, ChevronLeft, Menu, X, FileText, HelpCircle, MessageSquare, Video } from 'lucide-react';
-import { motion } from 'motion/react';
+import { PlayCircle, CheckCircle2, ChevronLeft, Menu, X, FileText, HelpCircle, MessageSquare, Video, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { Course, Lesson } from '../types';
+import Logo from '../components/Logo';
 
 export default function LessonPlayer() {
-  const { id } = useParams();
+  const { id } = useParams(); // Lesson ID
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const modules = [
-    {
-      id: 1,
-      title: 'মডিউল ১: সাধারণ গণিত বেসিক',
-      lessons: [
-        { id: 101, title: 'বাস্তব সংখ্যা (Real Numbers)', duration: '15:20', completed: true },
-        { id: 102, title: 'সেট ও ফাংশন', duration: '22:10', completed: true },
-        { id: 103, title: 'বীজগাণিতিক রাশি', duration: '18:45', completed: false, current: true },
-      ]
-    },
-    {
-      id: 2,
-      title: 'মডিউল ২: জ্যামিতি অধ্যায়',
-      lessons: [
-        { id: 201, title: 'রেখা, কোণ ও ত্রিভুজ', duration: '25:00', completed: false },
-        { id: 202, title: 'ব্যবহারিক জ্যামিতি', duration: '20:15', completed: false },
-      ]
-    }
-  ];
+  useEffect(() => {
+    if (!id) return;
+
+    // Fetch Lesson Data
+    const unsubscribeLesson = onSnapshot(doc(db, 'lessons', id), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const lessonData = { id: docSnapshot.id, ...docSnapshot.data() } as Lesson;
+        setLesson(lessonData);
+        
+        // Once we have lesson, fetch course and other lessons
+        if (lessonData.courseId) {
+          const unsubscribeCourse = onSnapshot(doc(db, 'courses', lessonData.courseId), (courseSnap) => {
+            if (courseSnap.exists()) {
+              setCourse({ id: courseSnap.id, ...courseSnap.data() } as Course);
+            }
+          });
+
+          const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', lessonData.courseId));
+          const unsubscribeAllLessons = onSnapshot(lessonsQuery, (snapshot) => {
+            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Lesson)).sort((a, b) => a.order - b.order);
+            setAllLessons(data);
+          });
+
+          return () => {
+            unsubscribeCourse();
+            unsubscribeAllLessons();
+          };
+        }
+      }
+      setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, `lessons/${id}`);
+      setLoading(false);
+    });
+
+    return () => unsubscribeLesson();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">লেসন পাওয়া যায়নি</h2>
+        <Link to="/dashboard" className="text-primary-600 font-medium">ড্যাশবোর্ডে ফিরে যান</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-primary-50 blur-[120px] rounded-full"></div>
-        <div className="absolute bottom-[20%] right-[10%] w-[40%] h-[30%] bg-primary-50 blur-[120px] rounded-full"></div>
-      </div>
-
       {/* Top Navbar */}
-      <nav className="bg-white  text-slate-900 h-16 flex items-center justify-between px-4 sm:px-6 z-30 sticky top-0 border-b border-slate-200 shadow-sm">
+      <nav className="bg-white text-slate-900 h-20 flex items-center justify-between px-4 sm:px-6 z-30 sticky top-0 border-b border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
           <Link to="/dashboard" className="text-slate-500 hover:text-primary-600 transition-colors bg-slate-50 p-2 rounded-lg hover:bg-slate-100">
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div className="hidden sm:block border-l border-slate-200 pl-4">
-            <h1 className="font-bold text-sm lg:text-base line-clamp-1 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600">SSC Math Special Batch</h1>
+          <div className="hidden sm:flex border-l border-slate-200 pl-4 items-center gap-3">
+             <Logo className="scale-75 origin-left" iconOnly />
+             <h1 className="font-bold text-sm lg:text-base line-clamp-1 text-slate-800">
+               {course?.title || 'Loading...'}
+             </h1>
           </div>
         </div>
         <div className="flex items-center gap-6">
-           {/* Progress */}
+           {/* Progress (Placeholder for now) */}
            <div className="hidden md:flex items-center gap-3">
-              <div className="text-xs font-medium text-slate-500">আপনার প্রগ্রেস: <span className="text-primary-600 font-sans font-bold">৪০%</span></div>
+              <div className="text-xs font-medium text-slate-500">প্রগ্রেস: <span className="text-primary-600 font-sans font-bold">০%</span></div>
               <div className="w-32 h-2 bg-slate-50 rounded-full overflow-hidden border border-slate-200 shadow-inner">
-                 <div className="h-full bg-primary-600 w-[40%] rounded-full shadow-sm" />
+                 <div className="h-full bg-primary-600 w-[0%] rounded-full shadow-sm" />
               </div>
            </div>
            <button 
@@ -66,24 +106,26 @@ export default function LessonPlayer() {
       <div className="flex-1 flex overflow-hidden relative z-10">
          {/* Main Content Area */}
          <div className="flex-1 flex flex-col overflow-y-auto">
-            {/* Video Player Placeholder */}
-            <div className="w-full bg-black aspect-video relative group shadow-sm border-b border-slate-200 lg:p-4">
-               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent to-slate-900/40 lg:rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-primary-50 group-hover:bg-primary-50 transition-colors"></div>
-                  <motion.div 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="w-20 h-20 rounded-full bg-primary-50 flex items-center justify-center  border border-primary-100 shadow-sm cursor-pointer hover:shadow-sm transition-shadow"
-                  >
-                     <PlayCircle className="w-10 h-10 text-primary-600 ml-1" />
-                  </motion.div>
-               </div>
-               {/* Note: Use real video player like video.js or standard HTML5 video here */}
+            {/* Video Player Area */}
+            <div className="w-full bg-black aspect-video relative group shadow-sm border-b border-slate-200">
+               {lesson.videoUrl ? (
+                 <iframe
+                   src={`https://www.youtube.com/embed/${lesson.videoUrl.split('v=')[1] || lesson.videoUrl.split('/').pop()}`}
+                   className="w-full h-full"
+                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                   allowFullScreen
+                   title={lesson.title}
+                 ></iframe>
+               ) : (
+                 <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                    <p className="text-white opacity-50">ভিডিও পাওয়া যায়নি</p>
+                 </div>
+               )}
             </div>
 
             {/* Video Info & Tabs */}
             <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
-               <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-6">বীজগাণিতিক রাশি - পর্ব ১</h1>
+               <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-6">{lesson.title}</h1>
                
                <div className="flex gap-6 border-b border-slate-200 mb-8 overflow-x-auto hide-scrollbar">
                   {[
@@ -95,43 +137,34 @@ export default function LessonPlayer() {
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center pb-4 text-sm font-bold border-b-2 whitespace-nowrap transition-colors relative ${
-                        activeTab === tab.id ? 'border-primary-100 text-primary-600' : 'border-transparent text-slate-500 hover:text-primary-600'
+                        activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-slate-500 hover:text-primary-600'
                       }`}
                     >
-                      {activeTab === tab.id && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary-50 shadow-sm"></div>}
                       {tab.icon} {tab.label}
                     </button>
                   ))}
                </div>
 
-               <div className="prose prose-invert max-w-none text-slate-600">
+               <div className="max-w-none text-slate-600">
                   {activeTab === 'overview' && (
-                     <div className="bg-white  p-6 lg:p-8 rounded-2xl border border-slate-200 space-y-4">
-                        <p className="text-lg leading-relaxed">এই ক্লাসে আমরা বীজগাণিতিক রাশির প্রাথমিক ধারণা এবং কিছু গুরুত্বপূর্ণ সূত্র নিয়ে আলোচনা করবো। সূত্রগুলো মুখস্থ না করে কীভাবে বুঝে মনে রাখতে হয়, তার সহজ উপায় শেখানো হবে।</p>
-                        <h3 className="text-slate-900 font-bold text-xl mt-6 mb-4">এই ক্লাসে যা যা শিখবো:</h3>
-                        <ul className="space-y-2 list-none p-0">
-                           {['রাশি ও পদের ধারণা', 'বর্গ নির্ণয়ের সূত্রাবলি', 'ঘন নির্ণয়ের সূত্রাবলি', 'প্র্যাকটিস প্রবলেম সলভিং'].map((item, i) => (
-                             <li key={i} className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                               <CheckCircle2 className="w-5 h-5 text-primary-600" />
-                               <span>{item}</span>
-                             </li>
-                           ))}
-                        </ul>
+                     <div className="bg-white p-6 lg:p-8 rounded-2xl border border-slate-200 space-y-4">
+                        <div className="prose prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: lesson.description || '' }}></div>
+                        {!lesson.description && <p className="text-slate-500">এই লেসনের কোনো ডেসক্রিপশন নেই।</p>}
                      </div>
                   )}
                   {activeTab === 'qa' && (
-                     <div className="bg-white  p-10 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
-                        <HelpCircle className="w-12 h-12 text-slate-600 mb-4" />
+                     <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
+                        <HelpCircle className="w-12 h-12 text-slate-400 mb-4" />
                         <p className="text-lg text-slate-500">এই লেসন সম্পর্কে আপনার কোনো প্রশ্ন থাকলে এখানে জিজ্ঞেস করতে পারেন।</p>
-                        <button className="mt-6 px-6 py-3 bg-slate-100 text-slate-900 rounded-xl font-medium hover:bg-white/20 hover:text-primary-600 transition-colors border border-slate-200 hover:border-primary-100">
+                        <button className="mt-6 px-6 py-3 bg-slate-50 text-slate-900 rounded-xl font-medium border border-slate-200 hover:border-primary-100 transition-colors">
                            নতুন প্রশ্ন করুন
                         </button>
                      </div>
                   )}
                   {activeTab === 'notes' && (
-                     <div className="bg-white  p-10 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
-                        <FileText className="w-12 h-12 text-slate-600 mb-4" />
-                        <p className="text-lg text-slate-500">এখানে আপনি আপনার নিজের নোট লিখে রাখতে পারবেন।</p>
+                     <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
+                        <FileText className="w-12 h-12 text-slate-400 mb-4" />
+                        <p className="text-lg text-slate-500">আপনার নিজস্ব নোটগুলো এখানে সেভ থাকবে।</p>
                      </div>
                   )}
                </div>
@@ -139,60 +172,56 @@ export default function LessonPlayer() {
          </div>
 
          {/* Course Curriculum Sidebar */}
-         <div className={`${sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'} fixed lg:static inset-y-0 right-0 w-80 bg-white  border-l border-slate-200 z-20 transition-transform duration-300 ease-in-out flex flex-col pt-16 lg:pt-0 shadow-sm`}>
-            <div className="p-5 border-b border-slate-200 shrink-0 bg-slate-50">
-               <h2 className="font-bold text-slate-900 flex items-center gap-2">
-                 <Video className="w-5 h-5 text-primary-600" />
-                 কোর্সের কন্টেন্ট
-               </h2>
-            </div>
-            
-            <div className="overflow-y-auto flex-1 hide-scrollbar">
-               {modules.map((module) => (
-                  <div key={module.id} className="border-b border-slate-200">
-                     <div className="px-5 py-4 bg-white font-bold text-sm text-slate-600 tracking-wide border-t border-slate-200 first:border-0 sticky top-0 z-10 shadow-sm shadow-black/20">
-                        {module.title}
-                     </div>
-                     <div className="divide-y divide-white/5">
-                        {module.lessons.map(lesson => (
-                           <div 
-                             key={lesson.id} 
-                             className={`p-4 flex gap-3 hover:bg-slate-50 cursor-pointer transition-all group ${
-                               lesson.current ? 'bg-primary-50 border-l-2 border-primary-100' : 'border-l-2 border-transparent'
-                             }`}
-                           >
-                              <div className="mt-0.5 shrink-0">
-                                 {lesson.completed ? (
-                                    <div className="relative">
-                                      <div className="absolute inset-0 bg-emerald-400 rounded-full blur-sm opacity-50"></div>
-                                      <CheckCircle2 className="w-5 h-5 text-emerald-400 relative z-10" />
-                                    </div>
-                                 ) : lesson.current ? (
-                                     <div className="relative">
-                                      <div className="absolute inset-0 bg-primary-50 rounded-full blur-sm opacity-50 animate-pulse"></div>
-                                      <PlayCircle className="w-5 h-5 text-primary-600 relative z-10" />
-                                    </div>
-                                 ) : (
-                                    <PlayCircle className="w-5 h-5 text-slate-600 group-hover:text-slate-500 transition-colors" />
-                                 )}
-                              </div>
-                              <div>
-                                 <h4 className={`text-sm font-medium leading-snug mb-1 transition-colors ${
-                                    lesson.current ? 'text-primary-600' : 'text-slate-600 group-hover:text-slate-900'
-                                 }`}>
-                                    {lesson.title}
-                                 </h4>
-                                 <div className={`flex items-center text-xs font-sans ${lesson.current ? 'text-primary-600/80' : 'text-slate-500'}`}>
-                                    <Video className="w-3 h-3 mr-1" /> {lesson.duration}
-                                 </div>
-                              </div>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-               ))}
-            </div>
-         </div>
+         <AnimatePresence>
+           {sidebarOpen && (
+             <motion.div 
+               initial={{ x: 320 }}
+               animate={{ x: 0 }}
+               exit={{ x: 320 }}
+               className="fixed lg:static inset-y-0 right-0 w-80 bg-white border-l border-slate-200 z-20 transition-all flex flex-col pt-20 lg:pt-0 shadow-xl lg:shadow-none"
+             >
+                <div className="p-5 border-b border-slate-200 shrink-0 bg-slate-50">
+                   <h2 className="font-bold text-slate-900 flex items-center gap-2">
+                     <Video className="w-5 h-5 text-primary-600" />
+                     কোর্সের কন্টেন্ট
+                   </h2>
+                </div>
+                
+                <div className="overflow-y-auto flex-1">
+                   {allLessons.map((l) => (
+                      <Link 
+                        to={`/play/${l.id}`}
+                        key={l.id} 
+                        className={`p-4 flex gap-3 hover:bg-slate-50 border-l-4 transition-all group ${
+                          l.id === id ? 'bg-primary-50 border-primary-600' : 'border-transparent'
+                        }`}
+                      >
+                         <div className="mt-0.5 shrink-0">
+                            {l.id === id ? (
+                                <PlayCircle className="w-5 h-5 text-primary-600" />
+                            ) : (
+                                <PlayCircle className="w-5 h-5 text-slate-400 group-hover:text-primary-600" />
+                            )}
+                         </div>
+                         <div>
+                            <h4 className={`text-sm font-medium leading-snug mb-1 transition-colors ${
+                               l.id === id ? 'text-primary-600' : 'text-slate-700 group-hover:text-primary-600'
+                            }`}>
+                               {l.title}
+                            </h4>
+                            <div className="flex items-center text-xs text-slate-500 font-sans">
+                               <Video className="w-3 h-3 mr-1" /> {l.duration || '0:00'}
+                            </div>
+                         </div>
+                      </Link>
+                   ))}
+                   {allLessons.length === 0 && (
+                     <div className="p-8 text-center text-slate-500 text-sm italic">লেসন পাওয়া যায়নি</div>
+                   )}
+                </div>
+             </motion.div>
+           )}
+         </AnimatePresence>
       </div>
     </div>
   );

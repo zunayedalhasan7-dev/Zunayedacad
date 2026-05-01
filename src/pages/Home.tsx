@@ -1,28 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { ArrowRight, Star, Users, CheckCircle, ShieldCheck, BookOpen, ChevronRight, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { HeroIllustration, AcademicIllustration, SkillsIllustration, LanguageIllustration, LabIllustration } from '../components/Illustrations';
 import CourseCard from '../components/CourseCard';
 import CategoryCard from '../components/CategoryCard';
+import ScrollToTopButton from '../components/ScrollToTopButton';
+import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Course } from '../types';
 
 export default function Home() {
-  const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
-  const y2 = useTransform(scrollY, [0, 1000], [0, -100]);
+  const [popularCourses, setPopularCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const coursesQuery = query(
+      collection(db, 'courses'), 
+      where('status', '==', 'published'),
+      limit(4)
+    );
+    
+    const unsubscribe = onSnapshot(coursesQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+      setPopularCourses(data);
+      setLoading(false);
+    }, (err) => {
+      console.error('Home courses fetch error:', err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="space-y-0 bg-slate-50 text-slate-600 relative overflow-hidden text-base">
+      <ScrollToTopButton />
       
-      {/* Background glow base */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-50 opacity-[0.04] blur-[150px] rounded-full"></div>
-        <div className="absolute top-[30%] right-[-10%] w-[30%] h-[50%] bg-primary-50 opacity-[0.04] blur-[150px] rounded-full"></div>
-        <div className="absolute bottom-[-10%] left-[20%] w-[50%] h-[30%] bg-primary-50 opacity-[0.03] blur-[150px] rounded-full"></div>
-      </div>
-
       {/* 2. Hero Section */}
-      <section className="relative pt-32 pb-24 overflow-hidden z-10 w-full min-h-[90vh] flex flex-col justify-center">
+      <section className="relative pt-28 pb-24 overflow-hidden z-10 w-full min-h-[90vh] flex flex-col justify-center">
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -70,11 +86,10 @@ export default function Home() {
             </motion.div>
             
             <motion.div 
-              style={{ y: y1 }}
-              initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-              transition={{ duration: 1, delay: 0.2, type: "spring" }}
-              className="flex-1 relative w-full mx-auto lg:max-w-none flex justify-center items-center z-10 perspective-[1000px]"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="flex-1 relative w-full mx-auto lg:max-w-none flex justify-center items-center z-10"
             >
               <div className="relative w-full max-w-lg aspect-square">
                 {/* 3D Floating elements */}
@@ -156,22 +171,33 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { id: '1', title: 'পাবলিক স্পিকিং ও প্রেজেন্টেশন', badge: 'POPULAR', instructor: 'জুনায়েদ আহমেদ', price: 999, originalPrice: 1500, rating: 4.9, thumb: 'https://images.unsplash.com/photo-1475823678248-624fc6f85785?w=500&auto=format&fit=crop&q=60' },
-              { id: '2', title: 'কমপ্লিট ডিজিটাল মার্কেটিং', badge: 'LIVE', instructor: 'তানজিল হাসান', price: 1500, originalPrice: 2000, rating: 4.8, thumb: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=500&auto=format&fit=crop&q=60' },
-              { id: '3', title: 'গ্রাফিক ডিজাইন ফর বিগিনারস', badge: 'NEW', instructor: 'রেজওয়ান করিম', price: 1200, originalPrice: 2500, rating: 5.0, thumb: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=500&auto=format&fit=crop&q=60' },
-              { id: '4', title: 'HSC ইংরেজি কুইক সল্ভ', instructor: 'তামান্না ফাহমি', price: 599, originalPrice: 800, rating: 4.7, thumb: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop&q=60' },
-            ].map((course, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1, type: "spring" }}
-              >
-                  <CourseCard {...course as any} />
-              </motion.div>
-            ))}
+            {loading ? (
+              [1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-white rounded-2xl h-[380px] animate-pulse border border-slate-200" />
+              ))
+            ) : popularCourses.length > 0 ? (
+              popularCourses.map((course, idx) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, type: "spring" }}
+                >
+                    <CourseCard
+                      id={course.id}
+                      title={course.title}
+                      instructor={course.instructorName || 'Unknown Instructor'}
+                      price={course.discountPrice || course.price}
+                      originalPrice={course.discountPrice ? course.price : undefined}
+                      rating={5.0}
+                      thumb={course.thumbnail}
+                    />
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 text-slate-500 font-medium">কোন কোর্স পাওয়া যায়নি</div>
+            )}
           </div>
         </div>
       </section>

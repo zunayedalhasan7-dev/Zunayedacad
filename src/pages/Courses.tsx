@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Course, CourseCategory } from '../types';
 import { Search } from 'lucide-react';
@@ -14,23 +14,19 @@ export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'published'));
-        const querySnapshot = await getDocs(coursesQuery);
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
-        setCourses(data);
-      } catch (err: any) {
-        console.error('Courses fetch error:', err);
-        if (err.message.includes('PERMISSION_DENIED') || err.message.includes('permission error')) {
-          console.error("Database configuration error detected. Please ensure Firebase is properly set up in AI Studio.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'published'));
+    
+    const unsubscribe = onSnapshot(coursesQuery, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+      setCourses(data);
+      setLoading(false);
+    }, (err: any) => {
+      console.error('Courses fetch error:', err);
+      handleFirestoreError(err, OperationType.LIST, 'courses');
+      setLoading(false);
+    });
 
-    fetchCourses();
+    return () => unsubscribe();
   }, []);
 
   const filteredCourses = courses.filter(course => {

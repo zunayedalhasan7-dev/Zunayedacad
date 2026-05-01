@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import DashboardLayout from './components/DashboardLayout';
-import LoadingScreen from './components/LoadingScreen';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy load pages
 const Home = React.lazy(() => import('./pages/Home'));
@@ -34,7 +34,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound'));
 function PrivateRoute({ children, role }: { children: React.ReactNode, role?: 'admin' | 'student' | 'instructor' }) {
   const { user, profile, loading } = useAuth();
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   
   // Strict role check
@@ -49,7 +49,8 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <React.Suspense fallback={<LoadingScreen />}>
+        <ScrollToTop />
+        <React.Suspense fallback={null}>
           <Routes>
             {/* App Layout */}
             <Route path="/" element={<Layout />}>
@@ -109,7 +110,7 @@ export default function App() {
             {/* No Layout Routes */}
             <Route path="/play/:id" element={
               <PrivateRoute>
-                <React.Suspense fallback={<LoadingScreen />}>
+                <React.Suspense fallback={null}>
                   <LessonPlayer />
                 </React.Suspense>
               </PrivateRoute>

@@ -39,17 +39,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDoc = await getDoc(doc(clientDb, 'users', fbUser.uid));
           
           if (userDoc.exists()) {
-            const userData = userDoc.data() as UserProfile;
+            let userData = userDoc.data() as UserProfile;
+            
+            // Auto-promote admin email if not already admin
+            if (fbUser.email === 'xpeee01@gmail.com' && userData.role !== UserRole.ADMIN) {
+              await setDoc(doc(clientDb, 'users', fbUser.uid), { role: UserRole.ADMIN }, { merge: true });
+              userData.role = UserRole.ADMIN;
+            }
+            
             setProfile(userData);
             setUser({ ...fbUser, ...userData });
           } else {
             // New user from maybe a background auth state
+            const role = fbUser.email === 'xpeee01@gmail.com' ? UserRole.ADMIN : 'student';
             const newProfile: any = {
               uid: fbUser.uid,
               email: fbUser.email,
               displayName: fbUser.displayName || '',
               photoURL: fbUser.photoURL || '',
-              role: 'student',
+              role: role,
               createdAt: serverTimestamp()
             };
             await setDoc(doc(clientDb, 'users', fbUser.uid), newProfile);
@@ -75,11 +83,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await signInWithEmailAndPassword(fbAuth, email, password);
       const userDoc = await getDoc(doc(clientDb, 'users', result.user.uid));
       
-      let data: any = { role: 'student' };
+      let data: any;
       if (userDoc.exists()) {
         data = userDoc.data();
-        setProfile(data as UserProfile);
+        // Auto-promote
+        if (email === 'xpeee01@gmail.com' && data.role !== UserRole.ADMIN) {
+          await setDoc(doc(clientDb, 'users', result.user.uid), { role: UserRole.ADMIN }, { merge: true });
+          data.role = UserRole.ADMIN;
+        }
+      } else {
+        // Fallback for missing doc
+        const role = email === 'xpeee01@gmail.com' ? UserRole.ADMIN : UserRole.STUDENT;
+        data = {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName || '',
+          role: role,
+          createdAt: serverTimestamp()
+        };
+        await setDoc(doc(clientDb, 'users', result.user.uid), data);
       }
+      
+      setProfile(data as UserProfile);
       setUser({ ...result.user, ...data });
       return { ...result.user, ...data };
     } catch (err: any) {
@@ -100,17 +125,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       let profileData: any;
       if (!userDoc.exists()) {
+        const role = fbUser.email === 'xpeee01@gmail.com' ? UserRole.ADMIN : UserRole.STUDENT;
         profileData = {
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: fbUser.displayName || '',
           photoURL: fbUser.photoURL || '',
-          role: 'student',
+          role: role,
           createdAt: serverTimestamp()
         };
         await setDoc(userDocRef, profileData);
       } else {
         profileData = userDoc.data();
+        
+        // Auto-promote
+        if (fbUser.email === 'xpeee01@gmail.com' && profileData.role !== UserRole.ADMIN) {
+          await setDoc(userDocRef, { role: UserRole.ADMIN }, { merge: true });
+          profileData.role = UserRole.ADMIN;
+        }
+
         // Update photo and name if missing
         await setDoc(userDocRef, {
           displayName: fbUser.displayName || profileData.displayName,
@@ -137,11 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       await updateProfile(fbUser, { displayName });
       
+      const role = email === 'xpeee01@gmail.com' ? UserRole.ADMIN : UserRole.STUDENT;
       const profileData: any = {
         uid: fbUser.uid,
         email: fbUser.email,
         displayName,
-        role: 'student',
+        role: role,
         createdAt: serverTimestamp()
       };
       

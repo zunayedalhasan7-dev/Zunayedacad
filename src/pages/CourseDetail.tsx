@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Course, Lesson, Enrollment } from '../types';
@@ -18,38 +18,43 @@ export default function CourseDetail() {
   const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-      try {
-        // Fetch Course
-        const courseDoc = await getDoc(doc(db, 'courses', id));
-        if (courseDoc.exists()) {
-          setCourse({ id: courseDoc.id, ...courseDoc.data() } as Course);
-        }
+    if (!id) return;
 
-        // Fetch Lessons
-        const lessonsQuery = query(collection(db, 'courses', id, 'lessons'), where('courseId', '==', id));
-        const lessonsSnapshot = await getDocs(lessonsQuery);
-        const lessonsData = lessonsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lesson)).sort((a, b) => a.order - b.order);
-        setLessons(lessonsData);
-
-        // Check Enrollment
-        if (user) {
-          const enrollQuery = query(collection(db, 'enrollments'), 
-            where('userId', '==', user.uid), 
-            where('courseId', '==', id)
-          );
-          const enrollSnapshot = await getDocs(enrollQuery);
-          setIsEnrolled(!enrollSnapshot.empty);
-        }
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, `courses/${id}`);
-      } finally {
-        setLoading(false);
+    // Course Listener
+    const unsubscribeCourse = onSnapshot(doc(db, 'courses', id), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        setCourse({ id: docSnapshot.id, ...docSnapshot.data() } as Course);
       }
-    };
+      setLoading(false);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, `courses/${id}`);
+      setLoading(false);
+    });
 
-    fetchData();
+    // Lessons Listener
+    const lessonsQuery = query(collection(db, 'courses', id, 'lessons'), where('courseId', '==', id));
+    const unsubscribeLessons = onSnapshot(lessonsQuery, (snapshot) => {
+      const lessonsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lesson)).sort((a, b) => a.order - b.order);
+      setLessons(lessonsData);
+    });
+
+    // Enrollment Check (One-time check is usually enough, but let's make it real-time too)
+    let unsubscribeEnrollment: (() => void) | undefined;
+    if (user) {
+      const enrollQuery = query(collection(db, 'enrollments'), 
+        where('userId', '==', user.uid), 
+        where('courseId', '==', id)
+      );
+      unsubscribeEnrollment = onSnapshot(enrollQuery, (snapshot) => {
+        setIsEnrolled(!snapshot.empty);
+      });
+    }
+
+    return () => {
+      unsubscribeCourse();
+      unsubscribeLessons();
+      if (unsubscribeEnrollment) unsubscribeEnrollment();
+    };
   }, [id, user]);
 
   const handleEnroll = async () => {

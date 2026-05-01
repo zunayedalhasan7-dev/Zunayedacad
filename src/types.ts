@@ -52,6 +52,7 @@ export interface Lesson {
   description: string;
   videoUrl: string;
   isFree: boolean;
+  duration?: string;
   order: number;
   createdAt: any;
 }

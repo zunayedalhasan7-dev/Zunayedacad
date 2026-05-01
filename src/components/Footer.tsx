@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import Logo from './Logo';
 
 export default function Footer() {
   return (
@@ -13,16 +14,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           {/* Company */}
           <div className="space-y-6">
-            <Link to="/" className="flex items-center space-x-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary-50 blur-md opacity-30 group-hover:opacity-60 transition-opacity rounded-xl"></div>
-                <div className="bg-primary-600 p-2 rounded-xl relative z-10">
-                  <GraduationCap className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 tracking-tight">
-                Zunayed Academy
-              </span>
+            <Link to="/" className="inline-block">
+              <Logo />
             </Link>
             <p className="text-sm leading-relaxed text-slate-500">
               জুনায়েদ একাডেমি বাংলাদেশের শিক্ষার্থীদের জন্য একটি আধুনিক লার্নিং প্ল্যাটফর্ম। 

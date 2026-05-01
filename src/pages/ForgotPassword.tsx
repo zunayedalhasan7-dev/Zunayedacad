@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Mail, ArrowLeft, Send, CheckCircle } from 'lucide-react';
+import { Mail, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { motion } from 'motion/react';
+import Logo from '../components/Logo';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -42,11 +43,8 @@ export default function ForgotPassword() {
         className="max-w-md w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12 relative z-10"
       >
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-6 group">
-            <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl group-hover:border-primary-100 group-hover:shadow-sm transition-all">
-              <GraduationCap className="h-6 w-6 text-primary-600" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Zunayed Academy</span>
+          <Link to="/" className="inline-block mb-6">
+            <Logo />
           </Link>
           <h2 className="text-3xl font-bold text-slate-900">পাসওয়ার্ড পুনরুদ্ধার</h2>
           <p className="text-slate-500 mt-2 text-sm">আপনার ইমেইল এড্রেস দিন, আমরা একটি রিসেট লিংক পাঠাবো</p>

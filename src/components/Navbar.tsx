@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Menu, X, LayoutDashboard, GraduationCap, Search, ChevronDown } from 'lucide-react';
+import { User, Menu, X, LayoutDashboard, Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu as HeadlessMenu, Transition } from '@headlessui/react';
+import Logo from './Logo';
 
 export default function Navbar() {
   const { user, profile, signOut, isInstructor, isAdmin } = useAuth();
@@ -30,16 +31,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           {/* Left: Logo */}
-          <Link to="/" className="flex items-center space-x-3 shrink-0 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary-50 blur-md opacity-30 group-hover:opacity-60 transition-opacity rounded-xl"></div>
-              <div className="bg-primary-600 p-2 rounded-xl relative z-10">
-                <GraduationCap className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 tracking-tight hidden sm:block">
-              Zunayed Academy
-            </span>
+          <Link to="/" className="shrink-0">
+            <Logo />
           </Link>
 
           {/* Center: Search Bar */}
@@ -61,54 +54,35 @@ export default function Navbar() {
 
           {/* Right: Actions */}
           <div className="hidden md:flex items-center space-x-6 shrink-0">
-            {/* Categories Dropdown */}
-            <HeadlessMenu as="div" className="relative inline-block text-left">
-              <div>
-                <HeadlessMenu.Button className="inline-flex justify-center items-center w-full text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors focus:outline-none group">
-                  ক্যাটাগরি
-                  <ChevronDown className="-mr-1 ml-1 h-4 w-4 group-hover:text-primary-600 transition-colors" aria-hidden="true" />
-                </HeadlessMenu.Button>
-              </div>
-              <Transition
-                as={React.Fragment}
-                enter="transition ease-out duration-200"
-                enterFrom="transform opacity-0 scale-95 -translate-y-2"
-                enterTo="transform opacity-100 scale-100 translate-y-0"
-                leave="transition ease-in duration-150"
-                leaveFrom="transform opacity-100 scale-100 translate-y-0"
-                leaveTo="transform opacity-0 scale-95 -translate-y-2"
-              >
-                <HeadlessMenu.Items className="origin-top-right absolute right-0 mt-4 w-60 rounded-2xl shadow-sm bg-white  border border-slate-200 focus:outline-none py-2 overflow-hidden">
+            {/* Categories Dropdown (Hover based) */}
+            <div className="relative group h-full flex items-center">
+              <button className="inline-flex justify-center items-center h-full text-sm font-bold text-slate-700 hover:text-primary-600 transition-colors focus:outline-none py-2">
+                ক্যাটাগরি
+                <ChevronDown className="ml-1 h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute top-full left-0 w-64 pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300 z-50">
+                <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden py-2">
                   {categories.map((category) => (
-                    <HeadlessMenu.Item key={category.name}>
-                      {({ active }) => (
-                        <Link
-                          to={category.href}
-                          className={`${
-                            active ? 'bg-slate-50 text-primary-600 pl-6' : 'text-slate-600 pl-4'
-                          } block pr-4 py-3 text-sm transition-all duration-200`}
-                        >
-                          {category.name}
-                        </Link>
-                      )}
-                    </HeadlessMenu.Item>
+                    <Link
+                      key={category.name}
+                      to={category.href}
+                      className="block px-6 py-3.5 text-sm font-bold text-slate-600 hover:text-primary-600 hover:bg-slate-50 transition-all border-l-4 border-transparent hover:border-primary-600 pl-5 hover:pl-7"
+                    >
+                      {category.name}
+                    </Link>
                   ))}
-                  <div className="border-t border-slate-200 my-2"></div>
-                  <HeadlessMenu.Item>
-                    {({ active }) => (
-                      <Link
-                        to="/courses"
-                        className={`${
-                          active ? 'bg-slate-50 text-primary-600 pl-6' : 'text-slate-600 pl-4'
-                        } block pr-4 py-3 text-sm font-medium transition-all duration-200`}
-                      >
-                        সব কোর্স দেখুন
-                      </Link>
-                    )}
-                  </HeadlessMenu.Item>
-                </HeadlessMenu.Items>
-              </Transition>
-            </HeadlessMenu>
+                  <div className="border-t border-slate-100 my-2 mx-4"></div>
+                  <Link
+                    to="/courses"
+                    className="block px-6 py-3.5 text-sm font-black text-primary-600 hover:bg-primary-50 transition-all border-l-4 border-transparent hover:border-primary-600 pl-5 hover:pl-7"
+                  >
+                    সব কোর্স দেখুন
+                  </Link>
+                </div>
+              </div>
+            </div>
 
             {user ? (
               <div className="flex items-center space-x-5 pl-6 border-l border-slate-200">
