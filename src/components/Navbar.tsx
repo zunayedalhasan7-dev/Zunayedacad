@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, Menu, X, LayoutDashboard, Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -11,6 +11,16 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/courses?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery('');
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -36,7 +46,7 @@ export default function Navbar() {
           </Link>
 
           {/* Center: Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8 transition-all hover:scale-[1.02]">
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8 transition-all hover:scale-[1.02]">
             <div className="relative w-full group">
               <div className="absolute -inset-0.5 bg-primary-600 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <div className="relative flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -45,12 +55,14 @@ export default function Navbar() {
                 </div>
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="block w-full pl-3 pr-4 py-2.5 bg-transparent text-slate-900 placeholder-slate-500 focus:outline-none sm:text-sm"
                   placeholder="আপনার কাঙ্খিত কোর্সটি খুঁজুন..."
                 />
               </div>
             </div>
-          </div>
+          </form>
 
           {/* Right: Actions */}
           <div className="hidden md:flex items-center space-x-6 shrink-0">
@@ -132,12 +144,15 @@ export default function Navbar() {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-3">
-            <button className="p-2 text-slate-500 hover:text-primary-600">
+            <button 
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 text-slate-500 hover:text-primary-600 outline-none"
+            >
                <Search className="w-5 h-5" />
             </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-600 hover:text-slate-900 p-2"
+              className="text-slate-600 hover:text-slate-900 p-2 outline-none"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -155,6 +170,20 @@ export default function Navbar() {
             className="md:hidden bg-slate-50  border-b border-slate-200 overflow-hidden shadow-2xl"
           >
             <div className="px-4 py-6 space-y-4">
+              {/* Mobile Search */}
+              <form onSubmit={(e) => { handleSearch(e); setIsOpen(false); }} className="relative group mx-2 mb-6">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="কোর্স খুঁজুন..."
+                  className="block w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all font-medium"
+                />
+              </form>
+
               <div className="space-y-1">
                 <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 shadow-text">ক্যাটাগরি</p>
                 {categories.map((category) => (

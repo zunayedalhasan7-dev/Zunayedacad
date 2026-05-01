@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Course, CourseCategory } from '../types';
@@ -10,8 +11,16 @@ import CourseCard from '../components/CourseCard';
 export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState<string>(searchParams.get('category') || 'All');
+
+  useEffect(() => {
+    const search = searchParams.get('search');
+    const category = searchParams.get('category');
+    if (search !== null) setSearchTerm(search);
+    if (category !== null) setSelectedCategory(category);
+  }, [searchParams]);
 
   useEffect(() => {
     const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'published'));
@@ -63,7 +72,14 @@ export default function Courses() {
                   type="text"
                   placeholder="কোর্স খুঁজুন..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSearchParams(prev => {
+                      if (e.target.value) prev.set('search', e.target.value);
+                      else prev.delete('search');
+                      return prev;
+                    }, { replace: true });
+                  }}
                   className="w-full pl-3 pr-4 py-3 bg-transparent text-slate-900 placeholder-slate-500 focus:outline-none sm:w-64"
                 />
               </div>
@@ -73,7 +89,14 @@ export default function Courses() {
               {categories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setSearchParams(prev => {
+                      if (cat === 'All') prev.delete('category');
+                      else prev.set('category', cat);
+                      return prev;
+                    }, { replace: true });
+                  }}
                   className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedCategory === cat 
                       ? 'bg-primary-600 text-white shadow-sm' 
