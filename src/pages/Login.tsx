@@ -29,7 +29,11 @@ export default function Login() {
       await login(email, password);
       // Redirection handled by useEffect
     } catch (err: any) {
-      setError(err.message || 'ইমেইল বা পাসওয়ার্ড ভুল হয়েছে। আবার চেষ্টা করুন।');
+      if (err.code === 'auth/invalid-credential' || err.message?.includes('invalid-credential')) {
+        setError('ইমেইল অথবা পাসওয়ার্ড ভুল। আপনি কি আগে রেজিস্টার করেছেন? না করলে এই ইমেইল দিয়ে রেজিস্টার করুন।');
+      } else {
+        setError(err.message || 'লগইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+      }
       console.error(err);
       setLoading(false);
     }
