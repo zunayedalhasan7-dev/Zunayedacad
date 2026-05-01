@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Users, 
   BookOpen, 
+  CreditCard,
   CheckSquare, 
   DollarSign, 
   Settings, 
@@ -26,8 +27,8 @@ export default function DashboardSidebar() {
   const adminLinks: SidebarItem[] = [
     { name: 'ওভারভিউ', href: '/admin', icon: LayoutDashboard },
     { name: 'ইউজার ম্যানেজমেন্ট', href: '/admin/users', icon: Users },
-    { name: 'কোর্স ম্যানেজমেন্ট', href: '/admin/courses', icon: CheckSquare },
-    { name: 'পেমেন্ট হিস্ট্রি', href: '/admin/payments', icon: DollarSign },
+    { name: 'কোর্স ম্যানেজমেন্ট', href: '/admin/courses', icon: BookOpen },
+    { name: 'পেমেন্ট হিস্ট্রি', href: '/admin/payments', icon: CreditCard },
   ];
 
   const studentLinks: SidebarItem[] = [

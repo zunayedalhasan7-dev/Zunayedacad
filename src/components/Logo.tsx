@@ -21,12 +21,12 @@ export default function Logo({ className = "", showText = false, white = false }
         <img 
           src={logoSrc} 
           alt="Zunayed Academy" 
-          className="h-24 md:h-36 w-auto object-contain relative z-10 transition-transform group-hover:scale-105 duration-300"
+          className="h-20 md:h-24 w-auto object-contain relative z-10 transition-transform group-hover:scale-105 duration-300"
           onError={() => setImgError(true)}
         />
         {imgError && (
           <div className={`${white ? 'bg-white' : 'bg-primary-600'} p-3 rounded-full relative z-10 shadow-lg`}>
-            <GraduationCap className={`h-16 w-16 ${white ? 'text-primary-600' : 'text-white'}`} />
+            <GraduationCap className={`h-20 w-20 ${white ? 'text-primary-600' : 'text-white'}`} />
           </div>
         )}
       </div>

@@ -38,31 +38,31 @@ export default function Home() {
       <ScrollToTopButton />
       
       {/* 2. Hero Section */}
-      <section className="relative pt-28 pb-24 overflow-hidden z-10 w-full min-h-[90vh] flex flex-col justify-center">
+      <section className="relative pt-20 md:pt-28 pb-16 md:pb-24 overflow-hidden z-10 w-full min-h-[85vh] flex flex-col justify-center">
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex-1 space-y-8 text-center lg:text-left relative z-20"
+              className="flex-1 space-y-6 md:space-y-8 text-center lg:text-left relative z-20"
             >
-              <div className="inline-flex items-center space-x-3 bg-slate-50  border border-slate-200 rounded-full px-5 py-2">
-                <div className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-50 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-50"></span>
+              <div className="inline-flex items-center space-x-3 bg-white/10 border border-slate-200/50 rounded-full px-4 md:px-5 py-1.5 md:py-2">
+                <div className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-500"></span>
                 </div>
-                <span className="text-sm font-semibold bg-clip-text text-transparent bg-primary-600">দেশের সেরা লার্নিং প্ল্যাটফর্ম</span>
+                <span className="text-xs md:text-sm font-semibold bg-clip-text text-transparent bg-primary-600">দেশের সেরা লার্নিং প্ল্যাটফর্ম</span>
               </div>
               
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-slate-900 drop-shadow-2xl">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-slate-900 drop-shadow-2xl">
                 স্কিল শিখুন, <br className="hidden lg:block" />
                 <span className="bg-clip-text text-transparent bg-primary-600 filter drop-shadow-sm">
                 ক্যারিয়ার গঠন করুন</span>
               </h1>
               
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 font-medium">
+              <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 font-medium px-4 md:px-0">
                 SSC, HSC, অ্যাডমিশন কিংবা স্কিল ডেভেলপমেন্ট — সবকিছুর সেরা প্রস্তুতি এখন এক জায়গায়। আজই যুক্ত হোন আমাদের সাথে।
               </p>
               
@@ -203,27 +203,27 @@ export default function Home() {
       </section>
 
       {/* 6. Free Resources Section */}
-      <section className="relative z-10 py-24">
+      <section className="relative z-10 py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <motion.div 
              initial={{ opacity: 0, y: 40 }}
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
-             className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 relative flex flex-col md:flex-row items-center"
+             className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 relative flex flex-col lg:flex-row items-center"
            >
              <div className="absolute inset-0 bg-gradient-to-r from-primary-600/20 to-indigo-600/20 mix-blend-overlay z-0" />
              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10 mix-blend-screen" />
              
-             <div className="p-10 md:p-16 relative z-10 flex-1 md:pr-0">
-               <span className="bg-primary-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-6 inline-block shadow-sm">Free</span>
-               <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 drop-shadow-md">ফ্রি স্টাডি ম্যাটেরিয়ালস</h2>
-               <p className="text-slate-600 text-lg mb-10 max-w-md leading-relaxed">আপনার প্রস্তুতির সুবিধার্থে আমাদের স্পেশাল নোটস এবং গাইডলাইন ডাইনলোড করুন একদম ফ্রিতে।</p>
+             <div className="p-8 md:p-16 relative z-10 flex-1 lg:pr-0 text-center lg:text-left">
+               <span className="bg-primary-600 text-white text-[10px] md:text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-6 inline-block shadow-sm">Free</span>
+               <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6 drop-shadow-md">ফ্রি স্টাডি ম্যাটেরিয়ালস</h2>
+               <p className="text-slate-600 text-base md:text-lg mb-10 max-w-md mx-auto lg:mx-0 leading-relaxed">আপনার প্রস্তুতির সুবিধার্থে আমাদের স্পেশাল নোটস এবং গাইডলাইন ডাইনলোড করুন একদম ফ্রিতে।</p>
                <Link to="/free-courses" className="inline-flex items-center px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:shadow-sm hover:scale-105 transition-all">
                  ডাউনলোড করুন <ArrowRight className="ml-2 h-5 w-5" />
                </Link>
              </div>
              
-             <div className="flex-1 relative z-10 p-10 hidden md:flex justify-center perspective-[1000px]">
+             <div className="flex-1 relative z-10 p-10 hidden lg:flex justify-center perspective-[1000px]">
                {/* Decorative grid */}
                <div className="grid grid-cols-2 gap-6" style={{ transform: 'rotateY(-15deg)', transformStyle: 'preserve-3d' }}>
                   <motion.div animate={{ z: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 4 }} className="bg-white  rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col items-center">

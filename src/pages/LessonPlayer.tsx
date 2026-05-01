@@ -1,58 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PlayCircle, CheckCircle2, ChevronLeft, Menu, X, FileText, HelpCircle, MessageSquare, Video, Loader2 } from 'lucide-react';
+import { PlayCircle, CheckCircle2, ChevronLeft, Menu, X, FileText, HelpCircle, MessageSquare, Video, Loader2, ChevronDown, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Course, Lesson } from '../types';
 import Logo from '../components/Logo';
 
 export default function LessonPlayer() {
-  const { id } = useParams(); // Lesson ID
+  const { courseId, lessonId } = useParams();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!id) return;
+    if (!courseId || !lessonId) return;
 
-    // Fetch Lesson Data
-    const unsubscribeLesson = onSnapshot(doc(db, 'lessons', id), (docSnapshot) => {
+    // Fetch Lesson Data from Subcollection
+    const unsubscribeLesson = onSnapshot(doc(db, 'courses', courseId, 'lessons', lessonId), (docSnapshot) => {
       if (docSnapshot.exists()) {
         const lessonData = { id: docSnapshot.id, ...docSnapshot.data() } as Lesson;
         setLesson(lessonData);
         
-        // Once we have lesson, fetch course and other lessons
-        if (lessonData.courseId) {
-          const unsubscribeCourse = onSnapshot(doc(db, 'courses', lessonData.courseId), (courseSnap) => {
-            if (courseSnap.exists()) {
-              setCourse({ id: courseSnap.id, ...courseSnap.data() } as Course);
-            }
-          });
+        // Fetch Course Content
+        const unsubscribeCourse = onSnapshot(doc(db, 'courses', courseId), (courseSnap) => {
+          if (courseSnap.exists()) {
+            setCourse({ id: courseSnap.id, ...courseSnap.data() } as Course);
+          }
+        });
 
-          const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', lessonData.courseId));
-          const unsubscribeAllLessons = onSnapshot(lessonsQuery, (snapshot) => {
-            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Lesson)).sort((a, b) => a.order - b.order);
-            setAllLessons(data);
-          });
+        const lessonsQuery = query(collection(db, 'courses', courseId, 'lessons'), orderBy('order', 'asc'));
+        const unsubscribeAllLessons = onSnapshot(lessonsQuery, (snapshot) => {
+          const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Lesson));
+          setAllLessons(data);
+          
+          // Auto open current lesson's module
+          if (lessonData.moduleId) {
+            setOpenModules(prev => ({ ...prev, [lessonData.moduleId]: true }));
+          } else {
+            setOpenModules(prev => ({ ...prev, 'সাধারণ বিষয়': true }));
+          }
+        });
 
-          return () => {
-            unsubscribeCourse();
-            unsubscribeAllLessons();
-          };
-        }
+        return () => {
+          unsubscribeCourse();
+          unsubscribeAllLessons();
+        };
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, `lessons/${id}`);
+      handleFirestoreError(err, OperationType.GET, `courses/${courseId}/lessons/${lessonId}`);
       setLoading(false);
     });
 
     return () => unsubscribeLesson();
-  }, [id]);
+  }, [courseId, lessonId]);
 
   if (loading) {
     return (
@@ -187,36 +194,68 @@ export default function LessonPlayer() {
                    </h2>
                 </div>
                 
-                <div className="overflow-y-auto flex-1">
-                   {allLessons.map((l) => (
-                      <Link 
-                        to={`/play/${l.id}`}
-                        key={l.id} 
-                        className={`p-4 flex gap-3 hover:bg-slate-50 border-l-4 transition-all group ${
-                          l.id === id ? 'bg-primary-50 border-primary-600' : 'border-transparent'
-                        }`}
-                      >
-                         <div className="mt-0.5 shrink-0">
-                            {l.id === id ? (
-                                <PlayCircle className="w-5 h-5 text-primary-600" />
-                            ) : (
-                                <PlayCircle className="w-5 h-5 text-slate-400 group-hover:text-primary-600" />
-                            )}
-                         </div>
-                         <div>
-                            <h4 className={`text-sm font-medium leading-snug mb-1 transition-colors ${
-                               l.id === id ? 'text-primary-600' : 'text-slate-700 group-hover:text-primary-600'
-                            }`}>
-                               {l.title}
-                            </h4>
-                            <div className="flex items-center text-xs text-slate-500 font-sans">
-                               <Video className="w-3 h-3 mr-1" /> {l.duration || '0:00'}
-                            </div>
-                         </div>
-                      </Link>
+                <div className="overflow-y-auto flex-1 scroller-custom">
+                   {Object.entries(
+                     allLessons.reduce((acc, l) => {
+                       const mod = l.moduleId || 'সাধারণ বিষয়';
+                       if (!acc[mod]) acc[mod] = [];
+                       acc[mod].push(l);
+                       return acc;
+                     }, {} as Record<string, Lesson[]>)
+                   ).map(([modName, modLessons]) => (
+                     <div key={modName} className="border-b border-slate-100">
+                        <button 
+                          onClick={() => setOpenModules(prev => ({ ...prev, [modName]: !prev[modName] }))}
+                          className="w-full flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left"
+                        >
+                           <span className="text-sm font-black text-slate-800 line-clamp-1 flex-1 pr-2">{modName}</span>
+                           <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 shrink-0 ${openModules[modName] ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        <AnimatePresence initial={false}>
+                          {openModules[modName] && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden bg-white"
+                            >
+                                {modLessons.map((l) => (
+                                  <Link 
+                                    to={`/play/${courseId}/${l.id}`}
+                                    key={l.id} 
+                                    className={`p-4 pl-6 flex gap-3 hover:bg-slate-50 border-l-4 transition-all group ${
+                                      l.id === lessonId ? 'bg-primary-50 border-primary-600' : 'border-transparent'
+                                    }`}
+                                  >
+                                     <div className="mt-0.5 shrink-0">
+                                        {l.id === lessonId ? (
+                                            <PlayCircle className="w-4 h-4 text-primary-600" />
+                                        ) : (
+                                            <PlayCircle className="w-4 h-4 text-slate-300 group-hover:text-primary-600" />
+                                        )}
+                                     </div>
+                                     <div>
+                                        <h4 className={`text-[13px] font-bold leading-snug mb-1 transition-colors ${
+                                           l.id === lessonId ? 'text-primary-600' : 'text-slate-600 group-hover:text-slate-900'
+                                        }`}>
+                                           {l.title}
+                                        </h4>
+                                        <div className="flex items-center text-[10px] text-slate-400 font-sans font-bold uppercase tracking-wider">
+                                           <Clock className="w-3 h-3 mr-1" /> {l.duration || '0:00'}
+                                        </div>
+                                     </div>
+                                  </Link>
+                               ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                     </div>
                    ))}
+                   
                    {allLessons.length === 0 && (
-                     <div className="p-8 text-center text-slate-500 text-sm italic">লেসন পাওয়া যায়নি</div>
+                     <div className="p-10 text-center text-slate-400 text-sm font-bold italic">লেসন পাওয়া যায়নি</div>
                    )}
                 </div>
              </motion.div>

@@ -53,8 +53,12 @@ export default function CourseCard({ id, title, instructor, price, originalPrice
           
           <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-auto">
             <div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-200">৳{price}</span>
-              {originalPrice && <span className="ml-2 text-sm text-slate-500 line-through">৳{originalPrice}</span>}
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-200">
+                {price === 0 ? 'Free' : `৳${price}`}
+              </span>
+              {originalPrice && originalPrice > 0 && price !== originalPrice && (
+                <span className="ml-2 text-sm text-slate-500 line-through">৳{originalPrice}</span>
+              )}
             </div>
             <Link 
               to={`/courses/${id}`} 

@@ -102,13 +102,18 @@ export default function App() {
                     <AdminDashboard />
                   </PrivateRoute>
                 } />
+                <Route path="admin/:tab" element={
+                  <PrivateRoute role="admin">
+                    <AdminDashboard />
+                  </PrivateRoute>
+                } />
               </Route>
               
               <Route path="*" element={<NotFound />} />
             </Route>
 
             {/* No Layout Routes */}
-            <Route path="/play/:id" element={
+            <Route path="/play/:courseId/:lessonId" element={
               <PrivateRoute>
                 <React.Suspense fallback={null}>
                   <LessonPlayer />

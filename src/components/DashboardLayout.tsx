@@ -10,7 +10,7 @@ export default function DashboardLayout() {
         <div className="absolute top-[-10%] right-[10%] w-[40%] h-[40%] bg-primary-50 opacity-[0.03] blur-[150px] rounded-full"></div>
         <div className="absolute bottom-[10%] left-[-10%] w-[30%] h-[50%] bg-primary-50 opacity-[0.03] blur-[150px] rounded-full"></div>
       </div>
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-64px)] relative z-10">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-64px)] relative">
         <DashboardSidebar />
         <main className="flex-grow p-4 md:p-6 lg:p-10 transition-all duration-300">
           <Outlet />

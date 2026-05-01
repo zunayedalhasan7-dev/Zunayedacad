@@ -28,68 +28,41 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import { v2 as cloudinary } from "cloudinary";
+import multer from "multer";
+import { Readable } from "stream";
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin (Module-level state)
 let firebaseApp: any;
 let db: any;
-try {
-  const pId = firebaseConfig.projectId?.trim();
-  
-  if (getApps().length === 0) {
-    console.log(`Initializing Firebase Admin. Using Project ID: ${pId || 'auto-detect'}`);
-    
-    firebaseApp = initializeApp({
-      credential: applicationDefault(),
-      projectId: pId, 
-    });
-  } else {
-    firebaseApp = getApp();
-  }
-  
-  // Set project IDs in environment for GCloud libraries
-  if (pId) {
-    process.env.GOOGLE_CLOUD_PROJECT = pId;
-    process.env.GCLOUD_PROJECT = pId;
-  }
-  
-  const activeProjectId = firebaseApp?.options?.projectId;
-  console.log(`Firebase Admin active. Project ID: ${activeProjectId || 'unknown'}`);
 
-  // Initialize Firestore
-  const dbId = firebaseConfig.firestoreDatabaseId;
-  try {
-    if (dbId) {
-      console.log(`Using named Firestore database: "${dbId}" for project: ${activeProjectId}`);
-      db = getFirestore(firebaseApp, dbId);
-    } else {
-      console.log(`Using default Firestore database for project: ${activeProjectId}`);
-      db = getFirestore(firebaseApp);
-    }
-    
-    // Immediate connectivity test
-    db.collection("_health").doc("init").get()
-      .then(() => console.log("Firestore connectivity verified."))
-      .catch((e: any) => {
-        console.error("Firestore connectivity test failed:", e.message);
-        if (e.message.includes("PERMISSION_DENIED") || e.message.includes("is disabled")) {
-          console.error("HINT: Database is not ready or permissions are missing. Run 'Set up Firebase' in AI Studio.");
-        }
-      });
-  } catch (firestoreError: any) {
-    console.error("Firestore initialization failed:", firestoreError.message);
-    db = null;
-  }
-} catch (error: any) {
-  console.error("CRITICAL: Firebase initialization failed:", error.message);
-  if (error.message.includes("PERMISSION_DENIED")) {
-    console.error("HINT: This usually means the environment's service account does not have access to the specified project. Please run 'Set up Firebase' in AI Studio.");
-  }
-  firebaseApp = null;
-  db = null;
-}
 const JWT_SECRET = process.env.JWT_SECRET || "zunayed-academy-super-secret-key-2024";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "xpeee01@gmail.com";
 const DEFAULT_ADMIN_PASSWORD = "Zun@yedExveeXp123!";
+
+// ================== CLOUDINARY CONFIG ==================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dw2dsrhfb",
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
+
+// Multer setup for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 1 * 1024 * 1024, // 1MB limit
+  },
+  fileFilter: (req, file, cb) => {
+  if (file.mimetype === "image/jpeg" || file.mimetype === "image/png" || file.mimetype === "image/webp") {
+      cb(null, true);
+    } else {
+      cb(new Error("শুধুমাত্র JPG, PNG বা WEBP ছবি আপলোড করা যাবে।"));
+    }
+  },
+});
 
 // Extend Request type for custom user property
 interface AuthRequest extends Request {
@@ -101,20 +74,56 @@ interface AuthRequest extends Request {
 }
 
 // ================== AUTH MIDDLEWARE ==================
-const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
+const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.cookies.token;
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
-    return res.status(401).json({ error: "No token provided. Please login." });
+  // 1. Try JWT from cookie
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      req.user = decoded;
+      return next();
+    } catch (error) {
+      // Continue to check header
+    }
   }
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: "Invalid or expired token." });
-  }
+      // 2. Try Firebase ID Token from Authorization header
+      if (authHeader && authHeader.startsWith("Bearer ") && firebaseApp) {
+        const idToken = authHeader.split("Bearer ")[1];
+        try {
+          const authInstance = getAuth(firebaseApp);
+          const decodedToken = await authInstance.verifyIdToken(idToken);
+          
+          // We often need role, so we check Firestore if possible
+          // Use the admin db instance which bypasses rules
+          let role = "student";
+          if (db) {
+            try {
+              const userDoc = await db.collection("users").doc(decodedToken.uid).get();
+              if (userDoc.exists) {
+                role = userDoc.data()?.role || "student";
+              }
+            } catch (dbErr: any) {
+              console.error(`[Auth] Middleware DB fetch failed for UID ${decodedToken.uid}:`, dbErr.message);
+              // If we can't fetch role, we still allow the request if the token is valid,
+              // but fallback to the most restricted role.
+            }
+          }
+
+          req.user = {
+            uid: decodedToken.uid,
+            email: decodedToken.email || "",
+            role: role
+          };
+          return next();
+        } catch (error: any) {
+          console.error("[Auth] Firebase ID Token verification failed:", error.message);
+        }
+      }
+
+  return res.status(401).json({ error: "No token provided. Please login." });
 };
 
 // ================== ROLE CHECK MIDDLEWARE ==================
@@ -141,7 +150,7 @@ const dbCheck = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-async function seedAdmin() {
+async function seedAdmin(attempt = 1) {
   const adminPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
 
   if (!db) {
@@ -149,12 +158,19 @@ async function seedAdmin() {
     return;
   }
 
+  // Delay seeding to allow for network/IAM propagation
+  if (attempt === 1) {
+    console.log("Waiting for network/IAM propagation before seeding admin (40s)...");
+    await new Promise(resolve => setTimeout(resolve, 40000));
+  }
+
   try {
-    // Check for admin user by email instead of just a static ID
+    console.log(`[Seed] Checking admin account (Attempt ${attempt}/7): ${ADMIN_EMAIL}`);
+    // Check for admin user by email
     const userSnapshot = await db.collection("users").where("email", "==", ADMIN_EMAIL).limit(1).get();
     
     if (userSnapshot.empty) {
-      console.log(`Seeding admin account: ${ADMIN_EMAIL}`);
+      console.log(`[Seed] Seeding admin account: ${ADMIN_EMAIL}`);
       const hashedPassword = await bcrypt.hash(adminPassword, 12);
       const newUserRef = db.collection("users").doc();
       
@@ -168,22 +184,115 @@ async function seedAdmin() {
         lockedUntil: null,
         createdAt: FieldValue.serverTimestamp(),
       });
-      console.log("Admin account seeded successfully.");
+      console.log("[Seed] Admin account seeded successfully.");
     } else {
       const adminDoc = userSnapshot.docs[0];
       if (adminDoc.data().role !== "admin") {
-        console.log(`Updating role to admin for ${ADMIN_EMAIL}`);
-        await adminDoc.ref.update({ role: "admin" });
+        console.log(`[Seed] Updating role to admin for ${ADMIN_EMAIL}`);
+        await adminDoc.ref.update({ 
+          role: "admin",
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      } else {
+        console.log(`[Seed] Admin user already exists.`);
       }
     }
-  } catch (error) {
-    console.error("Error seeding admin:", error);
+  } catch (error: any) {
+    console.error(`[Seed] Error seeding admin (Attempt ${attempt}):`, error.message);
+    const isPermissionDenied = error.message?.includes('PERMISSION_DENIED') || error.code === 7;
+    
+    if (attempt < 7) {
+      const delay = isPermissionDenied ? 30000 : 15000;
+      console.log(`[Seed] Retrying admin seeding in ${delay/1000} seconds...`);
+      setTimeout(() => seedAdmin(attempt + 1), delay);
+    } else {
+      console.error("[Seed] Admin seeding failed after 7 attempts.");
+    }
   }
 }
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Initialize Firebase Admin (Moved from top-level to avoid blocking module load)
+  try {
+    const pId = firebaseConfig.projectId?.trim();
+    
+    if (getApps().length === 0) {
+      console.log(`Initializing Firebase Admin. Project ID: ${pId || 'auto-detect'}`);
+      firebaseApp = initializeApp({
+        credential: applicationDefault(),
+        projectId: pId, 
+      });
+    } else {
+      firebaseApp = getApp();
+    }
+    
+    const activeProjectId = firebaseApp?.options?.projectId;
+    if (activeProjectId) {
+      process.env.GOOGLE_CLOUD_PROJECT = activeProjectId;
+      process.env.GCLOUD_PROJECT = activeProjectId;
+    }
+
+    const dbId = firebaseConfig.firestoreDatabaseId;
+    async function tryInitializeFirestore(databaseId?: string) {
+      try {
+        const dbInstance = databaseId ? getFirestore(firebaseApp, databaseId) : getFirestore(firebaseApp);
+        const dbLabel = databaseId || "(default)";
+        console.log(`[Firestore] Testing connectivity to database: "${dbLabel}"...`);
+        
+        // Timeout for test operation to avoid hanging the startup
+        const testPromise = dbInstance.collection("_health_init_test").limit(1).get();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000));
+        
+        try {
+          await Promise.race([testPromise, timeoutPromise]);
+          console.log(`[Firestore] SUCCESS: Connected to "${dbLabel}"`);
+          return dbInstance;
+        } catch (testErr: any) {
+          if (testErr.message === "Timeout") {
+            console.warn(`[Firestore] Timeout testing "${dbLabel}". Proceeding anyway.`);
+            return dbInstance;
+          }
+          const isPermissionDenied = testErr.message?.includes('PERMISSION_DENIED') || testErr.code === 7;
+          if (isPermissionDenied) {
+            console.error(`[Firestore] PERMISSION_DENIED on "${dbLabel}".`);
+            return null;
+          }
+          console.warn(`[Firestore] Test error for "${dbLabel}":`, testErr.message);
+          return dbInstance;
+        }
+      } catch (e: any) {
+        console.error(`[Firestore] CRITICAL init error for "${databaseId || '(default)'}":`, e.message);
+        return null;
+      }
+    }
+
+    // Attempt DB init
+    if (dbId && dbId !== "" && dbId !== "default" && dbId !== "undefined") {
+      db = await tryInitializeFirestore(dbId);
+    }
+    if (!db) {
+      db = await tryInitializeFirestore();
+    }
+
+    if (db) {
+      console.log(`[Firestore] ACTIVE Database: "${db._databaseId || '(default)'}"`);
+      // Start admin seeding in background
+      seedAdmin();
+    } else {
+      console.error("CRITICAL: Failed to initialize any Firestore database instance.");
+    }
+  } catch (error: any) {
+    console.error("CRITICAL: Firebase initialization failed:", error.message);
+  }
+
+  // Request logger
+  app.use((req, res, next) => {
+    console.log(`[Incoming] ${req.method} ${req.url}`);
+    next();
+  });
 
   // Fix for express-rate-limit validation warnings in proxy environments
   app.set("trust proxy", 1);
@@ -202,8 +311,9 @@ async function startServer() {
   console.log("Starting server and seeding admin...");
   seedAdmin().catch(err => console.error("Non-blocking seedAdmin failed:", err));
 
-  // Force JSON for all API routes
+  // Force JSON for all API routes and Log
   app.use("/api", (req, res, next) => {
+    console.log(`[API Request] ${req.method} ${req.url}`);
     res.setHeader("Content-Type", "application/json");
     next();
   });
@@ -518,6 +628,93 @@ async function startServer() {
     res.json({ message: "Logged out successfully." });
   });
 
+  // ================== PROFILE PICTURE UPLOAD ==================
+  app.post("/api/upload-profile", auth, dbCheck, (req: AuthRequest, res: Response) => {
+    upload.single("image")(req, res, async (err) => {
+      // 1. Handle Multer Errors
+      if (err instanceof multer.MulterError) {
+        console.error("[Upload] Multer error:", err);
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ error: "ছবির সাইজ ১ মেগাবাইটের বেশি হতে পারবে না।" });
+        }
+        return res.status(400).json({ error: `ফাইল আপলোড ত্রুটি: ${err.message}` });
+      } else if (err) {
+        console.error("[Upload] Custom filter error:", err.message);
+        return res.status(400).json({ error: err.message });
+      }
+
+      try {
+        console.log(`[Upload] Request received from UID: ${req.user?.uid}`);
+        
+        if (!req.file) {
+          console.error("[Upload] No file found in request.");
+          return res.status(400).json({ error: "কোনো ছবি পাওয়া যায়নি।" });
+        }
+
+        console.log(`[Upload] Processing file: ${req.file.originalname}, Size: ${req.file.size} bytes, Mime: ${req.file.mimetype}`);
+
+        if (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+          console.error("[Upload] Cloudinary keys missing in environment.");
+          return res.status(500).json({ 
+            error: "Cloudinary সার্ভারে কনফিগার করা নেই।",
+            hint: "Please set CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in the settings."
+          });
+        }
+
+        // Upload to Cloudinary using stream
+        const uploadPromise = new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "zunayed-academy/profiles",
+              resource_type: "image",
+              transformation: [
+                { width: 400, height: 400, crop: "fill", gravity: "face", quality: "auto" }
+              ],
+              public_id: `user_${req.user!.uid}`
+            },
+            (error, result) => {
+              if (error) {
+                console.error("[Upload] Cloudinary SDK error:", error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+
+          const readableStream = new Readable();
+          readableStream.push(req.file!.buffer);
+          readableStream.push(null);
+          readableStream.pipe(uploadStream);
+        });
+
+        const cloudinaryResult = (await uploadPromise) as any;
+        console.log(`[Upload] Cloudinary success: ${cloudinaryResult.secure_url}`);
+        const imageUrl = cloudinaryResult.secure_url;
+
+        // Update Firestore user profile
+        console.log(`[Upload] Updating Firestore for UID: ${req.user!.uid}`);
+        await db.collection("users").doc(req.user!.uid).set({
+          photoURL: imageUrl,
+          updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        console.log(`[Upload] Successfully completed for UID: ${req.user!.uid}`);
+        res.json({ 
+          message: "প্রোফাইল ছবি সফলভাবে আপডেট করা হয়েছে।",
+          photoURL: imageUrl 
+        });
+
+      } catch (error: any) {
+        console.error("[Upload] CRITICAL FAILURE:", error);
+        res.status(500).json({ 
+          error: "সার্ভারে ছবি আপলোড করতে সমস্যা হয়েছে।",
+          details: error.message 
+        });
+      }
+    });
+  });
+
   app.post("/api/auth/google", dbCheck, async (req: Request, res: Response) => {
     const { idToken } = req.body;
 
@@ -698,10 +895,11 @@ async function startServer() {
   });
   
   // API route not found handler
-  app.all("/api/{*path}", (req, res) => {
+  app.all("/api/*all", (req, res) => {
+    console.log(`[API 404] No match for: ${req.url}`);
     res.status(404).json({ 
       error: "API route not found", 
-      path: req.params.path,
+      path: req.url,
       method: req.method,
       message: "The requested API endpoint does not exist on this server."
     });
@@ -732,7 +930,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("{*path}", (req, res) => {
+    app.get("*all", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

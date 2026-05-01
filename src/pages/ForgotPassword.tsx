@@ -19,8 +19,16 @@ export default function ForgotPassword() {
     setMessage('');
     
     try {
-      await sendPasswordResetEmail(auth, email);
-      setMessage('পাসওয়ার্ড রিসেট লিংক আপনার ইমেইলে পাঠানো হয়েছে। অনুগ্রহ করে ইনবক্স চেক করুন।');
+      const actionCodeSettings = {
+        // The URL to redirect back to. The domain (www.example.com) for this
+        // URL must be in the authorized domains list in the Firebase Console.
+        url: window.location.origin + '/login',
+        // This must be true.
+        handleCodeInApp: true,
+      };
+      
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      setMessage('পাসওয়ার্ড রিসেট লিংক আপনার ইমেইলে পাঠানো হয়েছে। অনুগ্রহ করে ইনবক্স এবং স্প্যাম (Spam) ফোল্ডার চেক করুন।');
     } catch (err: any) {
       setError(err.message || 'পাসওয়ার্ড রিসেট লিংক পাঠাতে ব্যর্থ হয়েছে। ইমেইলটি সঠিক কিনা তা যাচাই করুন।');
       console.error(err);
@@ -57,19 +65,34 @@ export default function ForgotPassword() {
         )}
 
         {message ? (
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-8">
             <div className="flex justify-center">
               <div className="bg-emerald-500/10 p-5 rounded-full text-emerald-500">
                 <CheckCircle className="h-12 w-12" />
               </div>
             </div>
-            <p className="text-emerald-600 font-medium">{message}</p>
-            <Link 
-              to="/login"
-              className="inline-flex items-center text-primary-600 font-bold hover:underline"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> লগইন পেজে ফিরে যান
-            </Link>
+            <div>
+              <p className="text-emerald-600 font-black text-xl mb-2">সফল হয়েছে!</p>
+              <p className="text-slate-500 font-bold">পাসওয়ার্ড রিসেট লিংক আপনার ইমেইলে পাঠানো হয়েছে। অনুগ্রহ করে ইনবক্স চেক করুন।</p>
+            </div>
+            
+            <div className="space-y-4 flex flex-col items-center">
+              <a 
+                href="https://mail.google.com/mail/u/0/#spam" 
+                target="_blank" 
+                rel="noreferrer"
+                className="w-full inline-flex items-center justify-center px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-base hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+              >
+                স্প্যাম ফোল্ডার চেক করুন (Gmail)
+              </a>
+              
+              <Link 
+                to="/login"
+                className="inline-flex items-center text-slate-500 font-bold hover:text-primary-600 transition-all mt-4"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> লগইন পেজে ফিরে যান
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">

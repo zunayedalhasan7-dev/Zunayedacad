@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, Menu, X, LayoutDashboard, Search, ChevronDown } from 'lucide-react';
+import { User, Menu, X, LayoutDashboard, Search, ChevronDown, Phone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu as HeadlessMenu, Transition } from '@headlessui/react';
@@ -41,7 +41,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           {/* Left: Logo */}
-          <Link to="/" className="shrink-0">
+          <Link to="/" className="shrink-0 scale-75 md:scale-90 lg:scale-100 origin-left">
             <Logo />
           </Link>
 
@@ -66,6 +66,15 @@ export default function Navbar() {
 
           {/* Right: Actions */}
           <div className="hidden md:flex items-center space-x-6 shrink-0">
+            {/* Phone Number */}
+            <a 
+              href="tel:01626538051" 
+              className="flex items-center gap-2 text-sm font-black text-slate-700 bg-slate-100 hover:bg-primary-50 hover:text-primary-600 px-4 py-2 rounded-full transition-all active:scale-95 group"
+            >
+              <Phone className="w-4 h-4 text-primary-600 group-hover:animate-bounce" />
+              <span>01626538051</span>
+            </a>
+
             {/* Categories Dropdown (Hover based) */}
             <div className="relative group h-full flex items-center">
               <button className="inline-flex justify-center items-center h-full text-sm font-bold text-slate-700 hover:text-primary-600 transition-colors focus:outline-none py-2">
@@ -105,21 +114,78 @@ export default function Navbar() {
                 >
                   <LayoutDashboard className="h-5 w-5" />
                 </Link>
-                <div className="h-9 w-9 rounded-full bg-primary-600 p-[2px] cursor-pointer hover:shadow-sm transition-all">
-                  <div className="h-full w-full rounded-full bg-white overflow-hidden flex items-center justify-center">
-                    {profile?.photoURL ? (
-                      <img src={profile.photoURL} alt={profile.displayName} className="h-full w-full object-cover" />
-                    ) : (
-                      <User className="h-4 w-4 text-slate-600" />
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="text-sm font-medium text-slate-500 hover:text-red-400 transition-colors"
-                >
-                  লগআউট
-                </button>
+                
+                {/* Profile Dropdown */}
+                <HeadlessMenu as="div" className="relative">
+                  <HeadlessMenu.Button className="flex items-center focus:outline-none">
+                    <div className="h-9 w-9 rounded-full bg-primary-600 p-[2px] cursor-pointer hover:shadow-md transition-all active:scale-95">
+                      <div className="h-full w-full rounded-full bg-white overflow-hidden flex items-center justify-center">
+                        {profile?.photoURL ? (
+                          <img src={profile.photoURL} alt={profile.displayName} className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-4 w-4 text-slate-600" />
+                        )}
+                      </div>
+                    </div>
+                  </HeadlessMenu.Button>
+
+                  <Transition
+                    as={React.Fragment}
+                    enter="transition ease-out duration-200"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <HeadlessMenu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 focus:outline-none divide-y divide-slate-50 overflow-hidden z-50">
+                      <div className="px-6 py-4 bg-slate-50/50">
+                        <p className="text-sm font-black text-slate-900 truncate tracking-tight">{profile?.displayName || 'ব্যবহারকারী'}</p>
+                        <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">{user.email}</p>
+                      </div>
+                      <div className="py-2">
+                        <HeadlessMenu.Item>
+                          {({ active }) => (
+                            <Link
+                              to="/dashboard"
+                              className={`${
+                                active ? 'bg-primary-50 text-primary-600 pl-7' : 'text-slate-600 pl-5'
+                              } group flex w-full items-center px-6 py-3 text-sm font-bold transition-all border-l-4 border-transparent ${active ? 'border-primary-600' : ''}`}
+                            >
+                              আমার কোর্সসমূহ
+                            </Link>
+                          )}
+                        </HeadlessMenu.Item>
+                        <HeadlessMenu.Item>
+                          {({ active }) => (
+                            <Link
+                              to="/settings"
+                              className={`${
+                                active ? 'bg-primary-50 text-primary-600 pl-7' : 'text-slate-600 pl-5'
+                              } group flex w-full items-center px-6 py-3 text-sm font-bold transition-all border-l-4 border-transparent ${active ? 'border-primary-600' : ''}`}
+                            >
+                              প্রোফাইল সেটিংস
+                            </Link>
+                          )}
+                        </HeadlessMenu.Item>
+                      </div>
+                      <div className="py-2">
+                        <HeadlessMenu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => signOut()}
+                              className={`${
+                                active ? 'bg-red-50 text-red-500 pl-7' : 'text-slate-600 pl-5'
+                              } group flex w-full items-center px-6 py-3 text-sm font-bold transition-all border-l-4 border-transparent ${active ? 'border-red-500' : ''}`}
+                            >
+                              লগআউট
+                            </button>
+                          )}
+                        </HeadlessMenu.Item>
+                      </div>
+                    </HeadlessMenu.Items>
+                  </Transition>
+                </HeadlessMenu>
               </div>
             ) : (
               <div className="flex items-center space-x-4 pl-6 border-l border-slate-200">
@@ -143,16 +209,10 @@ export default function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-3">
-            <button 
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 text-slate-500 hover:text-primary-600 outline-none"
-            >
-               <Search className="w-5 h-5" />
-            </button>
+          <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-600 hover:text-slate-900 p-2 outline-none"
+              className="text-slate-600 hover:text-slate-900 p-2 sm:p-2.5 outline-none rounded-xl hover:bg-slate-100 transition-all active:scale-95"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -170,6 +230,15 @@ export default function Navbar() {
             className="md:hidden bg-slate-50  border-b border-slate-200 overflow-hidden shadow-2xl"
           >
             <div className="px-4 py-6 space-y-4">
+              {/* Mobile Phone Number */}
+              <a 
+                href="tel:01626538051" 
+                className="flex items-center justify-center gap-3 w-full py-4 bg-primary-50 text-primary-600 rounded-xl font-black text-lg mb-4 border border-primary-100"
+              >
+                <Phone className="w-5 h-5" />
+                <span>কল করুন: 01626538051</span>
+              </a>
+
               {/* Mobile Search */}
               <form onSubmit={(e) => { handleSearch(e); setIsOpen(false); }} className="relative group mx-2 mb-6">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -214,6 +283,13 @@ export default function Navbar() {
                       className="block px-4 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-primary-600 hover:bg-slate-50 transition-colors"
                     >
                       ড্যাশবোর্ড
+                    </Link>
+                    <Link
+                      to="/settings"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-primary-600 hover:bg-slate-50 transition-colors"
+                    >
+                      প্রোফাইল সেটিংস
                     </Link>
                     <button
                       onClick={() => {

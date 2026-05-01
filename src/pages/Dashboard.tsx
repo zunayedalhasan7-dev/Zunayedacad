@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Enrollment, Course } from '../types';
@@ -31,19 +31,18 @@ export default function Dashboard() {
         // Fetch Course data for each enrollment
         const courseData: EnrolledCourse[] = [];
         for (const enroll of enrollments) {
-          // Using getDocs here is still okay for individual course fetching in this context, 
-          // but we can try to optimize. For simplicity and real-time reliability:
-          const coursesCollection = collection(db, 'courses');
-          const courseQuery = query(coursesCollection, where('id', '==', enroll.courseId));
-          const courseSnapshot = await getDocs(courseQuery);
-          
-          if (!courseSnapshot.empty) {
-            const course = courseSnapshot.docs[0].data() as Course;
-            courseData.push({
-              ...course,
-              enrollmentId: enroll.id,
-              progress: enroll.progress || 0
-            });
+          try {
+            const courseDoc = await getDoc(doc(db, 'courses', enroll.courseId));
+            if (courseDoc.exists()) {
+              const course = { id: courseDoc.id, ...courseDoc.data() } as Course;
+              courseData.push({
+                ...course,
+                enrollmentId: enroll.id,
+                progress: enroll.progress || 0
+              });
+            }
+          } catch (courseErr) {
+            console.error(`Error fetching course ${enroll.courseId}:`, courseErr);
           }
         }
         setEnrolledCourses(courseData);

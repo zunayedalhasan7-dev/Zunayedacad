@@ -55,16 +55,16 @@ export default function Courses() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600">সকল কোর্সসমূহ</h1>
-            <p className="text-slate-500 text-lg">আপনার পছন্দের বিষয় বেছে নিন এবং শেখা শুরু করুন</p>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+          <div className="space-y-2 text-center lg:text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 tracking-tight">সকল কোর্সসমূহ</h1>
+            <p className="text-slate-500 text-base md:text-lg font-medium">আপনার পছন্দের বিষয় বেছে নিন এবং শেখা শুরু করুন</p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative group">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="relative group w-full md:w-auto">
               <div className="absolute -inset-0.5 bg-primary-600 rounded-xl blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
-              <div className="relative flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="relative flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden w-full">
                 <div className="pl-4">
                   <Search className="h-5 w-5 text-slate-500 group-focus-within:text-primary-600 transition-colors" />
                 </div>
@@ -80,12 +80,12 @@ export default function Courses() {
                       return prev;
                     }, { replace: true });
                   }}
-                  className="w-full pl-3 pr-4 py-3 bg-transparent text-slate-900 placeholder-slate-500 focus:outline-none sm:w-64"
+                  className="w-full pl-3 pr-4 py-3.5 bg-transparent text-slate-900 placeholder-slate-500 focus:outline-none md:w-64"
                 />
               </div>
             </div>
             
-            <div className="flex bg-white  p-1.5 rounded-xl border border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap hide-scrollbar">
+            <div className="flex w-full md:w-auto bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap no-scrollbar scroll-smooth">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -97,10 +97,10 @@ export default function Courses() {
                       return prev;
                     }, { replace: true });
                   }}
-                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-5 py-2.5 rounded-lg text-sm font-black transition-all ${
                     selectedCategory === cat 
-                      ? 'bg-primary-600 text-white shadow-sm' 
-                      : 'text-slate-500 hover:text-primary-600 hover:bg-slate-50'
+                      ? 'bg-primary-600 text-white shadow-md scale-105' 
+                      : 'text-slate-500 hover:text-primary-600 hover:bg-primary-50'
                   }`}
                 >
                   {cat === 'All' ? 'সবগুলো' : cat}
