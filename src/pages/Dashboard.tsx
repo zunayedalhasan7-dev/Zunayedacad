@@ -11,12 +11,19 @@ import { DashboardIllustration } from '../components/Illustrations';
 interface EnrolledCourse extends Course {
   enrollmentId: string;
   progress: number;
+  lastAccessedAt?: any;
 }
 
 export default function Dashboard() {
   const { user, profile } = useAuth();
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -38,7 +45,8 @@ export default function Dashboard() {
               courseData.push({
                 ...course,
                 enrollmentId: enroll.id,
-                progress: enroll.progress || 0
+                progress: enroll.progress || 0,
+                lastAccessedAt: enroll.lastAccessedAt
               });
             }
           } catch (courseErr) {
@@ -100,46 +108,54 @@ export default function Dashboard() {
         ) : enrolledCourses.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {enrolledCourses.map((course) => (
-              <motion.div
-                key={course.id}
-                whileHover={{ x: 4, scale: 1.02 }}
-                className="bg-white  rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col sm:flex-row p-4 gap-4 relative group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                <div className="w-full sm:w-40 h-28 rounded-xl overflow-hidden shrink-0 shadow-inner">
-                  <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-grow space-y-3 relative z-10">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-primary-600 transition-colors">{course.title}</h3>
-                    <span className="text-[10px] font-bold text-primary-600 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded shadow-sm uppercase">{course.category}</span>
+                <Link
+                  key={course.id}
+                  to={`/courses/${course.id}`}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col sm:flex-row p-4 gap-4 relative group hover:shadow-md transition-all"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                  <div className="w-full sm:w-40 h-28 rounded-xl overflow-hidden shrink-0 shadow-inner">
+                    <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium mb-1">
-                      <span className="text-slate-500">প্রগ্রেস</span>
-                      <span className="text-primary-600 font-sans">{course.progress}%</span>
+                  <div className="flex-grow space-y-3 relative z-10">
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-bold text-slate-900 line-clamp-1 group-hover:text-primary-600 transition-colors">{course.title}</h3>
+                      <span className="text-[10px] font-bold text-primary-600 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded shadow-sm uppercase">{course.category}</span>
                     </div>
-                    <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden border border-slate-200">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${course.progress}%` }}
-                        className="bg-primary-600 h-full rounded-full shadow-sm"
-                      />
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs font-medium mb-1">
+                        <span className="text-slate-500">প্রগ্রেস</span>
+                        <span className="text-primary-600 font-sans">{course.progress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden border border-slate-200">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${course.progress}%` }}
+                          className="bg-primary-600 h-full rounded-full shadow-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-xs text-slate-500">
+                        <Clock className="h-3 w-3 mr-1" /> শেষ দেখা: {course.lastAccessedAt ? (() => {
+                           const lastTime = course.lastAccessedAt.toDate().getTime();
+                           const diffInMinutes = Math.floor((now - lastTime) / (1000 * 60));
+                           if (diffInMinutes < 1) return 'এইমাত্র';
+                           if (diffInMinutes < 60) return `${diffInMinutes} মিনিট আগে`;
+                           const diffInHours = Math.floor(diffInMinutes / 60);
+                           if (diffInHours < 24) return `${diffInHours} ঘণ্টা আগে`;
+                           const diffInDays = Math.floor(diffInHours / 24);
+                           return `${diffInDays} দিন আগে`;
+                        })() : 'কখনো দেখেননি'}
+                      </div>
+                      <span
+                        className="flex items-center bg-slate-100 border border-slate-200 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-50 hover:border-primary-100 hover:shadow-sm transition-all"
+                      >
+                        চালিয়ে যান <Play className="h-3 w-3 ml-2 fill-current" />
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-xs text-slate-500">
-                      <Clock className="h-3 w-3 mr-1" /> শেষ দেখা: ২ দিন আগে
-                    </div>
-                    <Link
-                      to={`/courses/${course.id}`}
-                      className="flex items-center bg-slate-100 border border-slate-200 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-50 hover:border-primary-100 hover:shadow-sm transition-all"
-                    >
-                      চালিয়ে যান <Play className="h-3 w-3 ml-2 fill-current" />
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
+                </Link>
             ))}
           </div>
         ) : (

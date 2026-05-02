@@ -15,12 +15,7 @@ export default function EBooks() {
       if (ebooksData.length > 0) {
         setEbooks(ebooksData);
       } else {
-        // Fallback or empty state
-        setEbooks([
-          { id: 'eb1', title: 'HSC রসায়ন ১ম পত্র: সম্পূর্ণ নোট', author: 'জুনায়েদ আহমেদ', price: 150, rating: 4.9, image: 'https://images.unsplash.com/photo-1543003919-a995d5225d62?w=500', pages: 320, desc: 'অধ্যায় ভিত্তিক গুরুত্বপূর্ণ প্রশ্ন ও সমাধান সহ শর্ট ডাইজেস্ট।' },
-          { id: 'eb2', title: 'গণিত ভীতি দূর করার কৌশল', author: 'তানজিল হাসান', price: 120, rating: 4.8, image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=500', pages: 180, desc: 'ম্যাথ এর বেসিক ক্লিয়ার করার জন্য সহজ বাংলা ভাষায় লিখিত বই।' },
-          { id: 'eb3', title: 'ইংলিশ গ্রামার মাস্টার ক্লাস', author: 'তামান্না ফাহমি', price: 200, rating: 5.0, image: 'https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=500', pages: 450, desc: 'সবার জন্য সহজ নিয়মে ইংরেজি গ্রামার শেখার সম্পূর্ণ গাইড প্যাক।' }
-        ]);
+        setEbooks([]);
       }
       setLoading(false);
     }, (error) => {

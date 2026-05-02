@@ -110,10 +110,10 @@ export default function Navbar() {
               <div className="flex items-center space-x-5 pl-6 border-l border-slate-200">
                 <Link
                   to={isAdmin ? '/admin' : isInstructor ? '/instructor' : '/dashboard'}
-                  className="p-2 text-slate-500 hover:text-primary-600 transition-colors hover:scale-110 transform duration-200"
-                  title="ড্যাশবোর্ড"
+                  className="text-sm font-semibold text-slate-700 hover:text-primary-600 transition-colors flex items-center gap-2"
                 >
-                  <LayoutDashboard className="h-5 w-5" />
+                  <LayoutDashboard className="h-4 w-4" />
+                  ড্যাশবোর্ড
                 </Link>
                 
                 {/* Profile Dropdown */}

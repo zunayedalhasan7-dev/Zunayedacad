@@ -17,7 +17,8 @@ export interface UserProfile {
 export enum CourseCategory {
   SSC = 'SSC',
   HSC = 'HSC',
-  SKILLS = 'Skills'
+  SKILLS = 'Skills',
+  ADMISSION = 'Admission'
 }
 
 export enum CourseStatus {
@@ -64,6 +65,7 @@ export interface Enrollment {
   enrolledAt: any;
   progress: number;
   completedLessons: string[];
+  lastAccessedAt?: any;
 }
 
 export interface Payment {
@@ -75,4 +77,15 @@ export interface Payment {
   status: 'completed' | 'pending' | 'failed';
   transactionId: string;
   createdAt: any;
+}
+
+export interface Comment {
+  id: string;
+  lessonId: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  text: string;
+  createdAt: any;
+  replies?: Comment[];
 }

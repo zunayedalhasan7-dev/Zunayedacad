@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, orderBy, query } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { UserProfile, Course, CourseStatus, UserRole, Lesson } from '../types';
+import { UserProfile, Course, CourseCategory, CourseStatus, UserRole, Lesson } from '../types';
 import { Users, BookOpen, Shield, TrendingUp, Check, X, Database, ShoppingBag, Book as BookIcon, Search, CreditCard, Filter, MoreVertical, Trash2, ShieldAlert, BadgeCheck, Play, Plus, ListOrdered, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type AdminTab = 'overview' | 'users' | 'courses' | 'payments' | 'products' | 'ebooks';
+type AdminTab = 'overview' | 'users' | 'courses' | 'payments' | 'products' | 'ebooks' | 'instructors';
 
 export default function AdminDashboard() {
   const { tab } = useParams<{ tab: string }>();
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [ebooks, setEbooks] = useState<any[]>([]);
+  const [instructors, setInstructors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +49,8 @@ export default function AdminDashboard() {
     pages: 0, // for ebook
     author: '', // for ebook
     stock: 0, // for product
+    role: '', // for instructor
+    expertise: '', // for instructor
   });
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (tab && ['overview', 'users', 'courses', 'payments', 'products', 'ebooks'].includes(tab)) {
+    if (tab && ['overview', 'users', 'courses', 'payments', 'products', 'ebooks', 'instructors'].includes(tab)) {
       setActiveTab(tab as AdminTab);
     } else if (!tab) {
       setActiveTab('overview');
@@ -116,6 +119,14 @@ export default function AdminDashboard() {
         setEbooks(ebooksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       } catch (err) {
         handleFirestoreError(err, OperationType.GET, 'ebooks');
+      }
+
+      // Fetch instructors
+      try {
+        const instSnapshot = await getDocs(collection(db, 'instructors'));
+        setInstructors(instSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, 'instructors');
       }
     } catch (err) {
       console.error("Admin Dashboard data fetch error:", err);
@@ -248,6 +259,16 @@ export default function AdminDashboard() {
         collectionName = 'ebooks';
         data.image = formData.thumbnail;
         data.desc = formData.description;
+      } else if (activeTab === 'instructors') {
+        collectionName = 'instructors';
+        data.name = formData.title;
+        data.role = formData.role;
+        data.image = formData.thumbnail;
+        data.bio = formData.description;
+        data.expertise = formData.expertise.split(',').map(e => e.trim());
+        data.students = '0';
+        data.rating = 5.0;
+        data.courses = 0;
       }
 
       await addDoc(collection(db, collectionName), data);
@@ -255,7 +276,7 @@ export default function AdminDashboard() {
       setIsAdding(false);
       setFormData({
         title: '', description: '', price: 0, category: '', 
-        thumbnail: '', instructorName: '', pages: 0, author: '', stock: 0
+        thumbnail: '', instructorName: '', pages: 0, author: '', stock: 0, role: '', expertise: ''
       });
       fetchData();
     } catch (err) {
@@ -369,7 +390,7 @@ export default function AdminDashboard() {
         {/* Tab Navigation */}
         <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 md:gap-6">
           <div className="flex items-center gap-2 p-1.5 md:p-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto max-w-full no-scrollbar">
-            {(['overview', 'users', 'courses', 'payments', 'products', 'ebooks'] as AdminTab[]).map((tab) => (
+            {(['overview', 'users', 'courses', 'payments', 'products', 'ebooks', 'instructors'] as AdminTab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
@@ -385,31 +406,34 @@ export default function AdminDashboard() {
                 {tab === 'payments' && <CreditCard className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                 {tab === 'products' && <ShoppingBag className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                 {tab === 'ebooks' && <BookIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+                {tab === 'instructors' && <Award className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                 <span className="hidden sm:inline">
                   {tab === 'overview' ? 'ওভারভিউ' : 
                    tab === 'users' ? 'ইউজার' : 
                    tab === 'courses' ? 'কোর্স' : 
                    tab === 'payments' ? 'পেমেন্ট' :
-                   tab === 'products' ? 'শপ' : 'ই-বুক'}
+                   tab === 'products' ? 'শপ' : 
+                   tab === 'instructors' ? 'ইন্সট্রাক্টর' : 'ই-বুক'}
                 </span>
                 <span className="sm:hidden">
                   {tab === 'overview' ? 'ওভারভিউ' : 
                    tab === 'users' ? 'ইউজার' : 
                    tab === 'courses' ? 'কোর্স' : 
                    tab === 'payments' ? 'পেমেন্ট' :
-                   tab === 'products' ? 'শপ' : 'ই-বুক'}
+                   tab === 'products' ? 'শপ' : 
+                   tab === 'instructors' ? 'ইন্সট্রাক্টর' : 'ই-বুক'}
                 </span>
               </button>
             ))}
           </div>
 
-          {['courses', 'products', 'ebooks'].includes(activeTab) && (
+          {['courses', 'products', 'ebooks', 'instructors'].includes(activeTab) && (
             <button 
               onClick={() => setIsAdding(true)}
               className="flex items-center justify-center space-x-2 bg-primary-600 text-white px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl font-black hover:shadow-xl transition-all shadow-sm active:scale-95 text-sm md:text-base"
             >
               <Check className="h-4 w-4 md:h-5 md:w-5" />
-              <span>নতুন {activeTab === 'courses' ? 'কোর্স' : activeTab === 'products' ? 'প্রোডাক্ট' : 'ই-বুক'}</span>
+              <span>নতুন {activeTab === 'courses' ? 'কোর্স' : activeTab === 'products' ? 'প্রোডাক্ট' : activeTab === 'instructors' ? 'ইন্সট্রাক্টর' : 'ই-বুক'}</span>
             </button>
           )}
         </div>
@@ -873,6 +897,58 @@ export default function AdminDashboard() {
                 </div>
               </motion.div>
             )}
+
+            {activeTab === 'instructors' && (
+              <motion.div
+                key="instructors"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden"
+              >
+                <div className="p-5 md:p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4 md:gap-6">
+                  <div className="w-full sm:w-auto">
+                    <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">ইন্সট্রাক্টর ম্যানেজমেন্ট</h2>
+                    <p className="text-xs md:text-sm font-bold text-slate-500">মেন্টর ও শিক্ষকদের প্রোফাইল পরিচালনা করুন</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto scroller-custom">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                     <thead className="bg-slate-50/50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 md:px-8 py-4 md:py-6 text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">ইন্সট্রাক্টর</th>
+                        <th className="px-6 md:px-8 py-4 md:py-6 text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">ভূমিকা</th>
+                        <th className="px-6 md:px-8 py-4 md:py-6 text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest text-right">অ্যাকশন</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {instructors.map((ins) => (
+                        <tr key={ins.id} className="hover:bg-slate-50/50 transition-colors group">
+                           <td className="px-6 md:px-8 py-6 md:py-8">
+                            <div className="flex items-center gap-6 md:gap-8">
+                              <div className="h-16 w-16 md:h-20 md:w-20 bg-slate-100 rounded-full overflow-hidden border border-slate-100 shrink-0 shadow-sm">
+                                <img src={ins.image} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-black text-slate-900 text-base md:text-xl line-clamp-1">{ins.name}</div>
+                                <div className="text-[10px] md:text-xs text-slate-400 font-bold mt-1 line-clamp-2">{ins.bio}</div>
+                              </div>
+                            </div>
+                           </td>
+                           <td className="px-6 md:px-8 py-6 md:py-8 font-bold text-sm text-slate-600">{ins.role}</td>
+                           <td className="px-6 md:px-8 py-6 md:py-8 text-right">
+                             <button onClick={() => deleteItem(ins.id, 'instructors')} className="p-3 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-all active:scale-95 border border-slate-200 hover:border-rose-500 shadow-sm">
+                                <Trash2 className="w-6 h-6" />
+                             </button>
+                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {instructors.length === 0 && <div className="py-20 text-center text-slate-400 font-bold">কোন ইন্সট্রাক্টর পাওয়া যায়নি</div>}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>
@@ -1144,7 +1220,21 @@ export default function AdminDashboard() {
                     
                     <div className="space-y-3">
                        <label className="text-xs md:text-sm font-black text-slate-700 uppercase tracking-widest pl-1">ক্যাটাগরি</label>
-                       <input type="text" required placeholder="উদাহরণ: Science, Math, Book" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-lg shadow-sm" />
+                       {activeTab === 'courses' ? (
+                         <select 
+                           required 
+                           value={formData.category} 
+                           onChange={e => setFormData({...formData, category: e.target.value})} 
+                           className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-lg shadow-sm outline-none"
+                         >
+                           <option value="">ক্যাটাগরি সিলেক্ট করুন</option>
+                           {Object.values(CourseCategory).map(cat => (
+                             <option key={cat} value={cat}>{cat}</option>
+                           ))}
+                         </select>
+                       ) : (
+                         <input type="text" required placeholder="উদাহরণ: Science, Math, Book" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-lg shadow-sm" />
+                       )}
                     </div>
 
                     <div className="space-y-3 col-span-1 md:col-span-2">
@@ -1168,6 +1258,19 @@ export default function AdminDashboard() {
                           <div className="space-y-3">
                              <label className="text-xs md:text-sm font-black text-slate-700 uppercase tracking-widest pl-1">মোট পৃষ্ঠা</label>
                              <input type="number" required placeholder="উদাহরণ: ৩৫০" value={formData.pages} onChange={e => setFormData({...formData, pages: Number(e.target.value)})} className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-base shadow-sm" />
+                          </div>
+                       </div>
+                    )}
+
+                    {activeTab === 'instructors' && (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-2">
+                          <div className="space-y-3">
+                             <label className="text-xs md:text-sm font-black text-slate-700 uppercase tracking-widest pl-1">পদবী (Role)</label>
+                             <input type="text" required placeholder="উদাহরণ: গণিত ও উচ্চতর গণিত নির্দেশক" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-base shadow-sm" />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="text-xs md:text-sm font-black text-slate-700 uppercase tracking-widest pl-1">দক্ষতা (Expertise) কমা দিয়ে লিখুন</label>
+                             <input type="text" required placeholder="গণিত, পদার্থবিজ্ঞান, আইসিটি" value={formData.expertise} onChange={e => setFormData({...formData, expertise: e.target.value})} className="w-full px-6 py-4 md:py-5 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-primary-600 font-bold transition-all text-sm md:text-base shadow-sm" />
                           </div>
                        </div>
                     )}

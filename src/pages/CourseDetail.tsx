@@ -17,6 +17,7 @@ export default function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -221,9 +222,20 @@ export default function CourseDetail() {
             <section className="bg-white  rounded-3xl p-8 lg:p-10 shadow-sm border border-slate-200 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-primary-600 to-transparent opacity-50"></div>
               <h2 className="text-2xl font-bold font-bengali text-slate-900 mb-6">কোর্স সম্পর্কে বিস্তারিত</h2>
-              <div className="prose prose-invert max-w-none text-slate-600 space-y-4 whitespace-pre-wrap leading-relaxed text-lg">
+              <div className={`prose prose-invert max-w-none text-slate-600 space-y-4 whitespace-pre-wrap leading-relaxed text-lg relative ${!isDescriptionExpanded ? 'line-clamp-5' : ''}`}>
                 {course.description}
+                {course.description && course.description.length > 250 && !isDescriptionExpanded && (
+                  <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                )}
               </div>
+              {course.description && course.description.length > 250 && (
+                <button 
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="mt-4 text-primary-600 font-bold hover:text-primary-700 transition-colors text-sm flex items-center gap-1 font-bengali"
+                >
+                  {isDescriptionExpanded ? 'কম দেখুন' : 'আরও দেখুন'}
+                </button>
+              )}
             </section>
 
             {/* Curriculum */}
