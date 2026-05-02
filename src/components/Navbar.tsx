@@ -32,6 +32,7 @@ export default function Navbar() {
     { name: 'একাডেমিক (SSC/HSC)', href: '/courses?category=academic' },
     { name: 'স্কিল ডেভেলপমেন্ট', href: '/courses?category=skills' },
     { name: 'ভর্তি প্রস্তুতি', href: '/courses?category=admission' },
+    { name: 'ইন্সট্রাক্টরগণ', href: '/instructors' },
     { name: 'ই-বুক', href: '/ebooks' },
     { name: 'শপ/পণ্য', href: '/products' },
   ];

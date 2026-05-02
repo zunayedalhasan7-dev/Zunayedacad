@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ShoppingBag, Search, Filter, Star, ArrowRight, Package, Loader2 } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { Link } from 'react-router-dom';
 
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,12 +16,7 @@ export default function Products() {
       if (productsData.length > 0) {
         setProducts(productsData);
       } else {
-        // Fallback or empty state
-        setProducts([
-          { id: 'p1', title: 'প্রিমিয়াম স্টাডি কিট', price: 1500, rating: 4.8, image: 'https://images.unsplash.com/photo-1544816153-0975b779a6cd?w=500', category: 'Essential', desc: 'SSC ও HSC শিক্ষার্থীদের জন্য একটি সম্পূর্ণ স্টাডি প্যাক।' },
-          { id: 'p2', title: 'স্মার্ট ক্যালকুলেটর (Fx-991ES Plus)', price: 1200, rating: 4.9, image: 'https://images.unsplash.com/photo-1574607383476-f517f220d1c0?w=500', category: 'Tools', desc: 'অ্যাডভান্সড ম্যাথমেটিক্স ক্যালকুলেশন করার জন্য পারফেক্ট।' },
-          { id: 'p3', title: 'একাডেমিক নোটবুক সেট', price: 450, rating: 4.7, image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=500', category: 'Stationery', desc: '৫টি প্রিমিয়াম কোয়ালিটির নোটবুক প্যাক।' }
-        ]);
+        setProducts([]);
       }
       setLoading(false);
     }, (error) => {
@@ -91,9 +87,9 @@ export default function Products() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-primary-100 hover:shadow-sm transition-all duration-300"
+              className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-primary-100 hover:shadow-sm transition-all duration-300 flex flex-col"
             >
-              <div className="aspect-[4/3] overflow-hidden relative">
+              <Link to={`/products/${product.id}`} className="block aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={product.image} 
                   alt={product.title}
@@ -104,25 +100,27 @@ export default function Products() {
                     {product.category}
                   </span>
                 </div>
-              </div>
-              <div className="p-8">
+              </Link>
+              <div className="p-8 flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex text-amber-400">
                     <Star className="w-4 h-4 fill-current" />
                   </div>
                   <span className="text-sm font-bold text-slate-700">{product.rating}</span>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-primary-600 transition-colors">
-                  {product.title}
-                </h3>
-                <p className="text-slate-500 text-sm mb-6 line-clamp-2">
+                <Link to={`/products/${product.id}`}>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-primary-600 transition-colors">
+                    {product.title}
+                  </h3>
+                </Link>
+                <p className="text-slate-500 text-sm mb-6 line-clamp-2 flex-1">
                   {product.desc}
                 </p>
-                <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-auto">
                   <span className="text-2xl font-bold text-slate-900">৳{product.price}</span>
-                  <button className="bg-primary-600 text-white p-3 rounded-xl hover:bg-primary-700 transition-colors shadow-sm">
-                    <ShoppingBag className="w-5 h-5" />
-                  </button>
+                  <Link to={`/products/${product.id}`} className="bg-primary-600 text-white p-3 rounded-xl hover:bg-primary-700 transition-colors shadow-sm inline-flex items-center gap-2 font-bold px-5">
+                    <ShoppingBag className="w-5 h-5" /> কিনুন
+                  </Link>
                 </div>
               </div>
             </motion.div>

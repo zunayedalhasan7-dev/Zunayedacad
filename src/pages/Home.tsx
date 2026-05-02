@@ -10,6 +10,30 @@ import { collection, query, where, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase';
 import { Course } from '../types';
 
+const CategoryIcon = ({ cat }: { cat: { img: string; link: string; alt: string } }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <Link to={cat.link} className="group flex flex-col items-center shrink-0 snap-center">
+      <motion.div 
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="relative w-[120px] h-[120px] md:w-[150px] md:h-[150px] transition-all drop-shadow-md rounded-2xl bg-white flex items-center justify-center overflow-hidden"
+      >
+        {!loaded && (
+          <div className="absolute inset-0 animate-pulse bg-slate-200" />
+        )}
+        <img 
+          src={cat.img} 
+          alt={cat.alt} 
+          onLoad={() => setLoaded(true)}
+          className={`relative z-10 w-full h-full object-contain aspect-square transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`} 
+        />
+      </motion.div>
+    </Link>
+  );
+};
+
 export default function Home() {
   const [popularCourses, setPopularCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,19 +115,19 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="flex-1 relative w-full mx-auto lg:max-w-none flex justify-center items-center z-10"
             >
-              <div className="relative w-full max-w-lg aspect-square">
+              <div className="relative w-[280px] sm:w-[360px] md:w-full max-w-lg aspect-square">
                 {/* 3D Floating elements */}
-                <motion.div animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }} className="absolute z-20 -top-10 -left-10 bg-white  border border-slate-200 p-4 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary-50 p-3 rounded-xl"><Star className="w-6 h-6 text-primary-600" /></div>
-                    <div><p className="text-xs text-slate-500">Rating</p><p className="font-bold text-slate-900">4.9/5</p></div>
+                <motion.div animate={{ y: [0, -20, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }} className="absolute z-20 -top-5 -left-5 sm:-top-10 sm:-left-10 bg-white  border border-slate-200 p-3 sm:p-4 rounded-2xl shadow-sm scale-90 sm:scale-100">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="bg-primary-50 p-2 sm:p-3 rounded-xl"><Star className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" /></div>
+                    <div><p className="text-[10px] sm:text-xs text-slate-500">Rating</p><p className="font-bold text-sm sm:text-base text-slate-900">4.9/5</p></div>
                   </div>
                 </motion.div>
                 
-                <motion.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 1 }} className="absolute z-20 -bottom-10 -right-10 bg-white  border border-slate-200 p-4 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary-50 p-3 rounded-xl"><Users className="w-6 h-6 text-primary-600" /></div>
-                    <div><p className="text-xs text-slate-500">Total Students</p><p className="font-bold text-slate-900">10K+</p></div>
+                <motion.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay: 1 }} className="absolute z-20 -bottom-5 -right-5 sm:-bottom-10 sm:-right-10 bg-white  border border-slate-200 p-3 sm:p-4 rounded-2xl shadow-sm scale-90 sm:scale-100">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="bg-primary-50 p-2 sm:p-3 rounded-xl"><Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" /></div>
+                    <div><p className="text-[10px] sm:text-xs text-slate-500">Total Students</p><p className="font-bold text-sm sm:text-base text-slate-900">10K+</p></div>
                   </div>
                 </motion.div>
 
@@ -111,7 +135,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-primary-600/10 rounded-full blur-2xl"></div>
                 <div className="relative w-full h-full bg-white border border-slate-200 rounded-full shadow-sm overflow-hidden flex items-center justify-center">
                    <div className="w-3/4 h-3/4 rounded-full border border-slate-100 border-dashed animate-[spin_120s_linear_infinite] flex items-center justify-center" />
-                   <div className="absolute inset-0 flex items-center justify-center z-10 transition-transform hover:scale-105 duration-500">
+                   <div className="absolute inset-0 flex items-center justify-center z-10 transition-transform hover:scale-105 duration-500 p-16 sm:p-20 md:p-12 lg:p-16">
                       <AcademicIllustration />
                    </div>
                 </div>
@@ -121,7 +145,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. Categories Grid */}
+      {/* 3. Categories */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
           <motion.h2 
@@ -134,21 +158,22 @@ export default function Home() {
           </motion.h2>
           <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-slate-500 text-lg">আপনার লক্ষ্য অনুযায়ী সঠিক কোর্সটি বেছে নিন</motion.p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex justify-center flex-wrap gap-6 md:gap-8 overflow-x-auto pb-4 hide-scrollbar snap-x">
           {[
-            { title: "একাডেমিক", desc: "SSC ও HSC প্রস্তুতি", icon: <AcademicIllustration />, color: "bg-blue-50 hover:bg-blue-100", href: "/courses?category=academic" },
-            { title: "স্কিল ডেভেলপমেন্ট", desc: "ক্যারিয়ার প্রস্তুতি", icon: <SkillsIllustration />, color: "bg-indigo-50 hover:bg-indigo-100", href: "/courses?category=skills" },
-            { title: "ভাষা শিক্ষা", desc: "ইংরেজি ও আইইএলটিএস", icon: <LanguageIllustration />, color: "bg-emerald-50 hover:bg-emerald-100", href: "/courses?category=language" },
-            { title: "ভর্তি প্রস্তুতি", desc: "বিশ্ববিদ্যালয় অ্যাডমিশন", icon: <LabIllustration />, color: "bg-amber-50 hover:bg-amber-100", href: "/courses?category=admission" }
+            { img: "https://i.postimg.cc/bwy15JVh/Picsart-26-05-01-22-44-50-817.png", link: "/courses?category=SSC", alt: "SSC" },
+            { img: "https://i.postimg.cc/Jz0GJBd5/Picsart-26-05-01-22-55-00-523.png", link: "/courses?category=HSC", alt: "HSC" },
+            { img: "https://i.postimg.cc/BQMjXCpz/Picsart-26-05-01-23-00-19-948.png", link: "/courses?category=Skill", alt: "Skill" },
+            { img: "https://i.postimg.cc/44v7TG91/Picsart-26-05-01-23-08-14-083.png", link: "/ebooks", alt: "E-book" },
+            { img: "https://i.postimg.cc/sxJvPPr5/Picsart-26-05-01-23-12-00-854.png", link: "/products", alt: "Shop" }
           ].map((cat, i) => (
-            <motion.div 
+            <motion.div
                key={i}
                initial={{ opacity: 0, y: 30 }}
                whileInView={{ opacity: 1, y: 0 }}
                viewport={{ once: true }}
                transition={{ delay: i * 0.1 }}
             >
-              <CategoryCard {...cat} />
+              <CategoryIcon cat={cat} />
             </motion.div>
           ))}
         </div>

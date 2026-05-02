@@ -13,6 +13,8 @@ const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
 const Products = React.lazy(() => import('./pages/Products'));
+const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
+const Instructors = React.lazy(() => import('./pages/Instructors'));
 const EBooks = React.lazy(() => import('./pages/EBooks'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
@@ -65,6 +67,8 @@ export default function App() {
               <Route path="register" element={<Register />} />
               <Route path="forgot-password" element={<ForgotPassword />} />
               <Route path="products" element={<Products />} />
+              <Route path="products/:id" element={<ProductDetail />} />
+              <Route path="instructors" element={<Instructors />} />
               <Route path="ebooks" element={<EBooks />} />
               <Route path="blog" element={<Blog />} />
               <Route path="success-stories" element={<SuccessStories />} />

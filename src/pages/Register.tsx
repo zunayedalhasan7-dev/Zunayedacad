@@ -14,7 +14,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, profile, getDashboardPath, register, login } = useAuth();
+  const { user, profile, getDashboardPath, register, login, loginWithGoogle } = useAuth();
 
   // Redirect if already logged in and profile loaded
   React.useEffect(() => {
@@ -30,12 +30,28 @@ export default function Register() {
 
     try {
       await register(email, password, name);
-      // After registration, log them in or redirect to login
-      await login(email, password);
       // Redirection handled by useEffect
     } catch (err: any) {
       setError(err.message || 'রেজিস্ট্রেশন সফল হয়নি। ইমেইলটি আগে ব্যবহার করা থাকতে পারে।');
       console.error(err);
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError('');
+      setLoading(true);
+      await loginWithGoogle();
+      // Redirection handled by useEffect
+    } catch (err: any) {
+      console.error('Google Sign-In Error:', err);
+      // Handle the specific unauthorized domain error here too just in case
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('Google Login is not authorized for this domain yet. Please check Firebase settings.');
+      } else {
+        setError('গুগল দিয়ে লগইন ব্যর্থ হয়েছে।');
+      }
       setLoading(false);
     }
   };
@@ -142,6 +158,22 @@ export default function Register() {
                     <UserPlus className="h-5 w-5 group-hover:scale-110 transition-transform" />
                   </>
                 )}
+              </button>
+
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-400 text-sm font-medium">অথবা</span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full bg-white border border-slate-200 text-slate-700 font-bold py-4 rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-3 shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-70"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                <span>গুগল দিয়ে লগইন</span>
               </button>
             </form>
 
