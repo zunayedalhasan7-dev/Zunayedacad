@@ -20,7 +20,7 @@ export default function CourseCard({ id, title, instructor, price, originalPrice
       <Link to={`/courses/${id}`} className="block h-full group">
         <motion.div 
           whileHover={{ y: -5 }}
-          className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md hover:border-primary-100 transition-all flex flex-col min-w-[280px] sm:min-w-0 h-full relative"
+          className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md hover:border-primary-100 transition-all flex flex-col w-full h-full relative"
         >
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
           <div className="aspect-[16/10] relative overflow-hidden">
@@ -35,7 +35,7 @@ export default function CourseCard({ id, title, instructor, price, originalPrice
             </div>
           </div>
           
-          <div className="p-5 flex flex-col flex-grow relative z-10">
+          <div className="p-3 sm:p-5 flex flex-col flex-grow relative z-10">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-600/20 to-indigo-600/20 border border-primary-100 flex items-center justify-center text-[10px] font-bold text-primary-600 shadow-sm">
@@ -48,21 +48,21 @@ export default function CourseCard({ id, title, instructor, price, originalPrice
                 </div>
             </div>
 
-            <h3 className="font-bold text-lg text-slate-900 group-hover:text-primary-600 transition-colors leading-snug mb-4 flex-grow line-clamp-2 drop-shadow-sm">
+            <h3 className="font-bold text-sm sm:text-lg text-slate-900 group-hover:text-primary-600 transition-colors leading-snug mb-4 flex-grow line-clamp-2 drop-shadow-sm">
               {title}
             </h3>
             
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-auto">
+            <div className="flex flex-col xl:flex-row items-center justify-between pt-4 border-t border-slate-200 mt-auto gap-2">
               <div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-200">
+                <span className="text-base sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-200">
                   {price === 0 ? 'Free' : `৳${price}`}
                 </span>
                 {originalPrice && originalPrice > 0 && price !== originalPrice && (
-                  <span className="ml-2 text-sm text-slate-500 line-through">৳{originalPrice}</span>
+                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-slate-500 line-through">৳{originalPrice}</span>
                 )}
               </div>
               <div 
-                className="relative px-5 py-2 overflow-hidden rounded-xl bg-slate-50 border border-slate-200 group-hover/btn:border-primary-100 group-hover/btn:shadow-sm transition-all"
+                className="relative px-3 sm:px-5 py-1.5 sm:py-2 overflow-hidden rounded-xl bg-slate-50 border border-slate-200 group-hover/btn:border-primary-100 group-hover/btn:shadow-sm transition-all"
               >
                 <div className="absolute inset-0 bg-primary-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                 <span className="relative z-10 text-primary-600 group-hover/btn:text-white font-semibold text-sm transition-colors">

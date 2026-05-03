@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Original uploaded ZA logo lookalike -->
+  <path d="M120 160h160c-20 40-70 120-100 160h-60c30-40 80-120 100-160z" fill="#1e3a8a"/>
+  <!-- The A shape -->
+  <path d="M280 160l90 190h-90l-30-70h-50c40-80 60-100 80-120z" fill="#2563eb"/>
+</svg>

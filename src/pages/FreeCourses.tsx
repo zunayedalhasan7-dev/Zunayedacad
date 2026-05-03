@@ -71,7 +71,7 @@ export default function FreeCourses() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
           {loading ? (
             [1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-[2rem] h-80 animate-pulse shadow-sm border border-slate-200" />
